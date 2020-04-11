@@ -20,12 +20,22 @@ public class Part1{
             String sendString = "hello world";
             byte[] buffer = sendString.getBytes();
             DatagramPacket request = new DatagramPacket(buffer, buffer.length, host, port);
-            DatagramPacket response = new DatagramPacket(buffer, buffer.length);
-            socket.send(request); //send request
-            socket.receive(response); //await reply
+            byte[] buffer2 = new byte[buffer.length];
+            DatagramPacket response = new DatagramPacket(buffer2, buffer2.length);
 
-            String quote = new String(buffer, 0, response.getLength());
-            System.out.println(quote);
+            socket.connect(host, port);
+            System.out.println("IsBound: " + socket.isBound());
+            System.out.println("isConnected : " + socket.isConnected());
+
+            socket.send(request); //send request
+            System.out.println("...packet sent successfully....");
+
+            socket.receive(response); //await reply
+            System.out.println("Received packet data : " +
+                    Arrays.toString(response.getData()));
+
+           // String quote = new String(buffer, 0, response.getLength());
+            //System.out.println(quote);
 
         } catch (IOException ex){
             System.err.println("Could not connect to attu2.cs.washington.edu");
