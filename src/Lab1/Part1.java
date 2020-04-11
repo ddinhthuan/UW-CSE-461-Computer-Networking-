@@ -5,12 +5,18 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.Arrays;
 import Lab1.header;
+
+import javax.swing.plaf.synth.SynthTextAreaUI;
+
+import static Lab1.ByteBufferUtils.concat;
+
 public class Part1{
     public static void stageA(){
+
         //Step 1 -- client sends single UDP packet
         DatagramSocket socket = null;
         int port = 12235;
-        String hostname = "attu2.cs.washington.edu";
+        String hostname = "attu3.cs.washington.edu";
         try {
             socket = new DatagramSocket();  //open a socket on port 12235
             //connect to the server
@@ -18,9 +24,19 @@ public class Part1{
             InetAddress host = InetAddress.getByName(hostname);
 
             String sendString = "hello world";
-            byte[] buffer = sendString.getBytes();
-            DatagramPacket request = new DatagramPacket(buffer, buffer.length, host, port);
-            byte[] buffer2 = new byte[buffer.length];
+            byte[] sendStringBytes = sendString.getBytes();
+            header head =new header(sendStringBytes.length,0,1,123);
+            ByteBuffer headerBuffer =head.byteBuffer;
+            //Padding header with string with padding to 4 byte align --> total is 24 byte
+            ByteBuffer packetBuffer =ByteBuffer.allocate(headerBuffer.capacity()+sendStringBytes.length+(4-sendStringBytes.length%4));
+            packetBuffer.put(headerBuffer.array());
+            packetBuffer.put(sendStringBytes);
+
+            System.out.println("send out packet length : "+packetBuffer.array().length);
+
+            DatagramPacket request = new DatagramPacket(packetBuffer.array(), packetBuffer.array().length, host, port);
+            // Not sure why you want to use this
+            byte[] buffer2 = new byte[packetBuffer.array().length];
             DatagramPacket response = new DatagramPacket(buffer2, buffer2.length);
 
             socket.connect(host, port);
@@ -60,8 +76,7 @@ public class Part1{
 
 
     public static void main(String[] args)throws IOException{
-        header head =new header(10,200,1,023);
-        System.out.println("header : "+Arrays.toString(head.getHeader()));
+
         stageA();
 
     }

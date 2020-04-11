@@ -14,16 +14,9 @@ public class header{
     public header(int payload_len,int psecret,int step, int studentID){
         byteBuffer.putInt(payload_len);
 
-        System.out.println("payload"+Arrays.toString(byteBuffer.array()));
         byteBuffer.putInt(psecret);
-        System.out.println("psecret"+Arrays.toString(byteBuffer.array()));
         byteBuffer.putShort((short)step);
-        System.out.println("step"+Arrays.toString(byteBuffer.array()));
         byteBuffer.putShort((short)studentID);
-        System.out.println("ID"+Arrays.toString(byteBuffer.array()));
-    }
-    public byte[] getHeader(){
-        System.out.println(Arrays.toString(byteBuffer.array()));
-        return byteBuffer.array();
+        System.out.println("Header "+Arrays.toString(byteBuffer.array()));
     }
 }

@@ -292,6 +292,7 @@ public class ByteBufferUtils {
 
         if (length == 0) {
             // very funny
+            System.out.println(" lenght is zero");
             return EMPTY;
         }
 
