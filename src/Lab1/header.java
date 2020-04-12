@@ -13,9 +13,11 @@ public class header{
     ByteBuffer byteBuffer=ByteBuffer.allocate(12);
     public header(int payload_len,int psecret,int step, int studentID){
         byteBuffer.putInt(payload_len);
-
         byteBuffer.putInt(psecret);
-        byteBuffer.putShort((short)step);
+        ByteBuffer tmp0=ByteBuffer.allocate(8);tmp0.putInt(step);
+        ByteBuffer tmp1=ByteBuffer.allocate(8);tmp1.putInt(studentID);
+        System.out.println("step "+Arrays.toString(tmp0.array())+" student ID "+ Arrays.toString(tmp1.array()) );
+        byteBuffer.putShort((short) step);
         byteBuffer.putShort((short)studentID);
         System.out.println("Header "+Arrays.toString(byteBuffer.array()));
     }
