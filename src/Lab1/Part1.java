@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.Arrays;
 import Lab1.header;
+import Lab1.MyTimer;
 
 import javax.swing.plaf.synth.SynthTextAreaUI;
 
@@ -110,10 +111,11 @@ public class Part1{
         //Create Header
         header head =new header(len,secretA,1,123);
         ByteBuffer headerBuffer =head.byteBuffer;
+        HashMap<Integer,Timer>  timerMap =new HashMap<>();
 
         //Some socket parameter
         int packet_id =0;
-        int TIMEOUT_MILLIS =500;
+        int TIMEOUT_MILLIS =10000;
         DatagramSocket socket = null;
         while(packet_id!=num){
             //Create payloadbuffer with size of len + padding
@@ -131,7 +133,6 @@ public class Part1{
             boolean receivedResponse = false;
             int tries = 0;
             int MAXTRIES = 5;
-            do {
                 try {
                     socket = new DatagramSocket();  //open a socket
                     //connect to the server
@@ -142,31 +143,26 @@ public class Part1{
 
                     byte[] buffer2 = new byte[packetBuffer.array().length];
                     response = new DatagramPacket(buffer2, buffer2.length);
-
+                    setTimer(packet_id,response,socket,timerMap);
                     socket.send(request); //send request
                     System.out.println("...packet sent successfully....");
 
                     socket.receive(response); //await reply
-                    receivedResponse =true;
+                    int acked_packet_id = ByteBuffer.wrap(response.getData()).getInt(0);
+
+                    timerMap.remove(acked_packet_id);
                     System.out.println("Received packet data : " +
                             Arrays.toString(response.getData()));
 
                 } catch (IOException ex) {
 
-                        tries ++;
                         System.err.println("Could not get response "+tries+" times");
                         System.err.println(ex);
                 } finally {
                     if (socket != null)
                         socket.close();
                 }
-            }while((!receivedResponse)&&(tries<MAXTRIES));
 
-            if(receivedResponse){
-                System.out.println("Received: "+new String(response.getData()));
-            }else{
-                System.out.println("No respsonse -- giving up");
-            }
 
 
 
@@ -193,7 +189,13 @@ public class Part1{
 
     }
 
+    public static void setTimer(int packet_id,DatagramPacket reqeust,DatagramSocket socket,HashMap timerMap){
+        TimerTask timerTask = new MyTimer(packet_id,reqeust,socket,timerMap);
+        Timer timer = new Timer( Integer.toString(packet_id),true);
+        timer.scheduleAtFixedRate(timerTask, 0, 500);
+        timerMap.put(packet_id,timer);
 
+    }
     public static String byteArrayToHex(byte[] a) {
         StringBuilder sb = new StringBuilder(a.length * 2);
         for(byte b: a)
