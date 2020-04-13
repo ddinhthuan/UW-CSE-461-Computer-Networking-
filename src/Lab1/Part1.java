@@ -33,7 +33,7 @@ public class Part1{
             String sendString = "hello world\0";
 
             byte[] sendStringBytes = sendString.getBytes();
-            header head =new header(sendStringBytes.length,0,1,123);
+            header head =new header(sendStringBytes.length,0,1,68);
             ByteBuffer headerBuffer =head.byteBuffer;
             //Padding header with string with padding to 4 byte align --> total is 24 byte
             ByteBuffer packetBuffer =ByteBuffer.allocate(headerBuffer.capacity()+sendStringBytes.length+(4-sendStringBytes.length%4));
@@ -103,8 +103,8 @@ public class Part1{
         int secretA = ByteBuffer.wrap(response.getData()).getInt(24);
 
         //Create Header
-        header head =new header(len+4,secretA,1,123);
-        ByteBuffer headerBuffer =head.byteBuffer;
+        header head =new header(len+4,secretA,1,68);
+        ByteBuffer headerBuffer = head.byteBuffer;
 
         //Some socket parameter
         int packet_id =0;
@@ -127,7 +127,7 @@ public class Part1{
 
             boolean receivedResponse = false;
             int tries = 0;
-            int MAXTRIES = 7;
+            int MAX_TRIES = 10;
            do {
                 try {
                     socket = new DatagramSocket();  //open a socket
@@ -162,7 +162,7 @@ public class Part1{
                     if (socket != null)
                         socket.close();
                 }
-           }while((!receivedResponse)&&(tries<MAXTRIES));
+           }while((!receivedResponse)&&(tries<MAX_TRIES));
 
 
             if(!receivedResponse){
@@ -173,14 +173,58 @@ public class Part1{
             packet_id+=1;
         }
 
-        if(success)
+        if(success) {
+            //TODO receive last packet containing two integers
+
+ //           int tcp_port = ByteBuffer.wrap(response.getData()).getInt(12);
+ //           int secretB = ByteBuffer.wrap(response.getData()).getInt(16);
+ //           System.out.println("port " + tcp_port + " secretB " + secretB);
             System.out.println("stage B complete");
-        else
-            System.out.println("STAGE B FAILED");
+        }else {
+            System.err.println("STAGE B FAILED");
+        }
     }
-//    public void stageC(){
-//
-//    }
+
+    public static void stageC(String hostname,DatagramPacket response) throws IOException {
+         /*
+        Extract para from stage B response
+         */
+        //TODO fix these
+        int tcp_port = ByteBuffer.wrap(response.getData()).getInt(12);
+        int secretB = ByteBuffer.wrap(response.getData()).getInt(16);
+
+        //Create Header
+     //   header head =new header(len+4,secretB,1,68);
+     //   ByteBuffer headerBuffer = head.byteBuffer;
+
+
+        Socket socket = null;
+        try {
+            socket = new Socket(hostname, tcp_port);
+            socket.setSoTimeout(1000);
+
+            System.out.println("Connected");
+
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+
+            //Read data from the server
+            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            String line;
+            while((line = reader.readLine()) != null)
+                System.out.println(line);
+
+
+
+        } catch (IOException e){
+            System.err.println(e);
+        } finally {
+            if(socket != null){
+                socket.close();
+            }
+        }
+
+
+    }
 //    public void stageD(){
 //
 //    }
@@ -189,8 +233,8 @@ public class Part1{
     public static void main(String[] args)throws IOException{
 
         String hostname = "attu2.cs.washington.edu";
-        int port = 12235;
-        DatagramPacket response=stageA(hostname,port);
+        int udp_port = 12235;
+        DatagramPacket response=stageA(hostname,udp_port);
         System.out.println("----------------------------------------");
         stageB(hostname,response);
         System.out.println("----------------------------------------");
