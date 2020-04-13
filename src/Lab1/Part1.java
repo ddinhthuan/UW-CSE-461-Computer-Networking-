@@ -11,9 +11,6 @@ import java.util.*;
 import java.util.Arrays;
 import Lab1.header;
 
-import javax.swing.plaf.synth.SynthTextAreaUI;
-
-//import static Lab1.ByteBufferUtils.concat;
 
 
 public class Part1{
@@ -31,10 +28,8 @@ public class Part1{
             socket.setSoTimeout(10000); // set timeout on the connection - 10 seconds
             InetAddress host = InetAddress.getByName(hostname);
 
-//            String sendString = "hello world";
-            /*
-            note from the spec that "strings that are a sequence of characters ending with the character '\0'"
-             */
+
+            //note from the spec that "strings that are a sequence of characters ending with the character '\0'"
             String sendString = "hello world\0";
 
             byte[] sendStringBytes = sendString.getBytes();
@@ -108,7 +103,7 @@ public class Part1{
         int secretA = ByteBuffer.wrap(response.getData()).getInt(24);
 
         //Create Header
-        header head =new header(len,secretA,1,123);
+        header head =new header(len+4,secretA,1,123);
         ByteBuffer headerBuffer =head.byteBuffer;
 
         //Some socket parameter
@@ -117,21 +112,23 @@ public class Part1{
         DatagramSocket socket = null;
         while(packet_id!=num){
             //Create payloadbuffer with size of len + padding
-            ByteBuffer payloadBuffer =ByteBuffer.allocate(4+len+(4-len%4));
-            payloadBuffer.putInt(packet_id);
+            ByteBuffer payloadBuffer =ByteBuffer.allocate(4+len+(4-len%4)); //padding + len+4
+            payloadBuffer.putInt(packet_id); //first 4 bytes of payload is packet_id
             System.out.println("size of payload "+payloadBuffer.array().length);
+
             //Create packetBuffer using both header and payload
             ByteBuffer packetBuffer =ByteBuffer.allocate(headerBuffer.capacity()+payloadBuffer.capacity());
+            System.out.println(byteArrayToHex(headerBuffer.array()));
             packetBuffer.put(headerBuffer.array());
             packetBuffer.put(payloadBuffer.array());
 
-
-            System.out.println("size of packet "+packetBuffer.array().length);
+            System.out.println("size of packet "+packetBuffer.array().length); //should be payload size + 12
             //Retransmit parameter
+
             boolean receivedResponse = false;
             int tries = 0;
             int MAXTRIES = 5;
-            do {
+           // do {
                 try {
                     socket = new DatagramSocket();  //open a socket
                     //connect to the server
@@ -144,6 +141,7 @@ public class Part1{
                     response = new DatagramPacket(buffer2, buffer2.length);
 
                     socket.send(request); //send request
+                    System.out.println("send out packet : "+Arrays.toString(packetBuffer.array()));
                     System.out.println("...packet sent successfully....");
 
                     socket.receive(response); //await reply
@@ -152,25 +150,27 @@ public class Part1{
                             Arrays.toString(response.getData()));
 
                 } catch (IOException ex) {
-
-                        tries ++;
-                        System.err.println("Could not get response "+tries+" times");
+                  //      tries ++;
+                        System.err.println("Could not get response");
                         System.err.println(ex);
                 } finally {
                     if (socket != null)
                         socket.close();
                 }
-            }while((!receivedResponse)&&(tries<MAXTRIES));
+         //   }while((!receivedResponse)&&(tries<MAXTRIES));
 
+            /*
             if(receivedResponse){
                 System.out.println("Received: "+new String(response.getData()));
             }else{
                 System.out.println("No respsonse -- giving up");
             }
 
-
+             */
 
             packet_id+=1;
+
+
 
 
 
@@ -189,6 +189,7 @@ public class Part1{
         String hostname = "attu2.cs.washington.edu";
         int port = 12235;
         DatagramPacket response=stageA(hostname,port);
+        System.out.println("----------------------------------------");
         stageB(hostname,response);
 
     }
