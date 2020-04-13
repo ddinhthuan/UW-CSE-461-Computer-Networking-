@@ -109,6 +109,7 @@ public class Part1{
         //Some socket parameter
         int packet_id =0;
         int TIMEOUT_MILLIS =500;
+        boolean success = true;
         DatagramSocket socket = null;
         while(packet_id!=num){
             //Create payloadbuffer with size of len + padding
@@ -118,21 +119,23 @@ public class Part1{
 
             //Create packetBuffer using both header and payload
             ByteBuffer packetBuffer =ByteBuffer.allocate(headerBuffer.capacity()+payloadBuffer.capacity());
-            System.out.println(byteArrayToHex(headerBuffer.array()));
+ //           System.out.println(byteArrayToHex(headerBuffer.array()));
             packetBuffer.put(headerBuffer.array());
             packetBuffer.put(payloadBuffer.array());
 
             System.out.println("size of packet "+packetBuffer.array().length); //should be payload size + 12
-            //Retransmit parameter
 
             boolean receivedResponse = false;
             int tries = 0;
             int MAXTRIES = 5;
-           // do {
+           do {
                 try {
                     socket = new DatagramSocket();  //open a socket
                     //connect to the server
-                    socket.setSoTimeout(TIMEOUT_MILLIS); // set timeout on the connection - 0.5 seconds
+                    if(tries == 0)
+                        socket.setSoTimeout(1000);
+                    else
+                        socket.setSoTimeout(TIMEOUT_MILLIS); // set retransmission rate- 0.5 seconds
 
                     InetAddress host = InetAddress.getByName(hostname);
                     DatagramPacket request = new DatagramPacket(packetBuffer.array(), packetBuffer.array().length, host, udp_port);
@@ -142,39 +145,38 @@ public class Part1{
 
                     socket.send(request); //send request
                     System.out.println("send out packet : "+Arrays.toString(packetBuffer.array()));
-                    System.out.println("...packet sent successfully....");
+                    System.out.println("...packet " + packet_id + " sent successfully....");
 
                     socket.receive(response); //await reply
+
                     receivedResponse =true;
-                    System.out.println("Received packet data : " +
+                    System.out.println("Received packet " + packet_id + " data : " +
                             Arrays.toString(response.getData()));
+                    System.out.println();
 
                 } catch (IOException ex) {
-                  //      tries ++;
+                       tries ++;
                         System.err.println("Could not get response");
                         System.err.println(ex);
                 } finally {
                     if (socket != null)
                         socket.close();
                 }
-         //   }while((!receivedResponse)&&(tries<MAXTRIES));
+           }while((!receivedResponse)&&(tries<MAXTRIES));
 
-            /*
-            if(receivedResponse){
-                System.out.println("Received: "+new String(response.getData()));
-            }else{
-                System.out.println("No respsonse -- giving up");
+
+            if(!receivedResponse){
+                System.out.println("No response -- giving up");
+                success = false;
             }
 
-             */
-
             packet_id+=1;
-
-
-
-
-
         }
+
+        if(success)
+            System.out.println("stage B complete");
+        else
+            System.out.println("STAGE B FAILED");
     }
 //    public void stageC(){
 //
@@ -191,6 +193,7 @@ public class Part1{
         DatagramPacket response=stageA(hostname,port);
         System.out.println("----------------------------------------");
         stageB(hostname,response);
+        System.out.println("----------------------------------------");
 
     }
 
