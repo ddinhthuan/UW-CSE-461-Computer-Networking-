@@ -127,7 +127,7 @@ public class Part1{
 
             boolean receivedResponse = false;
             int tries = 0;
-            int MAXTRIES = 5;
+            int MAXTRIES = 7;
            do {
                 try {
                     socket = new DatagramSocket();  //open a socket
