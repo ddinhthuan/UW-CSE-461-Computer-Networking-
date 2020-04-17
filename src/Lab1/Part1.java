@@ -57,11 +57,6 @@ public class Part1{
             /*
              you don't need to establish a connection for udp, you just send
              */
-//            socket.connect(host, port);
-//            System.out.println("IsBound: " + socket.isBound());
-//            System.out.println("isConnected : " + socket.isConnected());
-
-
             socket.send(request); //send request
             System.out.println("...packet sent successfully....");
 
@@ -188,38 +183,43 @@ public class Part1{
         return response;
     }
 
-    public static void stageC(String hostname,DatagramPacket response) {
+    public static ByteBuffer stageC(String hostname,DatagramPacket response) throws IOException {
          /*
         Extract para from stage B response
          */
         int tcp_port = ByteBuffer.wrap(response.getData()).getInt(12);
-        int secretB = ByteBuffer.wrap(response.getData()).getInt(16);
-/*
-        //Create Header
-        // header head =new header(12,secretB,1,68);
-        ByteBuffer headerBuffer = head.byteBuffer;
+   //     int secretB = ByteBuffer.wrap(response.getData()).getInt(16);
 
- */
         //Just connect to the server then wait to receive data
         //after stage b, the server just opens up TCP socket and listens
         // for an incoming client connection,
         // as soon as it accepts that connection it will send part C
         // Reference: https://us.edstem.org/courses/403/discussion/30687
         Socket socket = null;
+        ByteBuffer resp = null;
         try {
-            socket = new Socket(hostname, tcp_port);
-            socket.setSoTimeout(1000);
+            socket = new Socket();
+            InetSocketAddress address = new InetSocketAddress(hostname,tcp_port);
+            int timeout = 1000;
+            socket.connect(address, timeout);
 
-            System.out.println("Connected");
 
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+        //    System.out.println("Connected? " + socket.isConnected());
 
             //Read data from the server
-            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String line;
-            while((line = reader.readLine()) != null)
-                System.out.println(line);
+            InputStream in = socket.getInputStream();
+            byte[] inBuf = in.readAllBytes();
+            System.out.println("Response: " + Arrays.toString(inBuf));
+            resp = ByteBuffer.wrap(inBuf);
 
+            int num2 = resp.getInt(12);
+            int len2 = resp.getInt(16);
+            int secretC = resp.getInt(20);
+            char c = resp.getChar(24);
+
+            System.out.println("num2: " + num2 + " len2: " + len2 +
+                    " secret C: " + secretC + " c: " + c);
+            System.out.println("stage C complete");
 
 
         } catch (IOException e){
@@ -230,11 +230,22 @@ public class Part1{
             }
         }
 
+        return resp;
 
     }
-//    public void stageD(){
-//
-//    }
+
+    public static void stageD(ByteBuffer response){
+     /*
+        Extract para from stage C response
+     */
+        int num2 = response.getInt(12);
+        int len2 = response.getInt(16);
+        int secretC = response.getInt(20);
+        char c = response.getChar(24);
+
+
+
+    }
 
 
     public static void main(String[] args)throws IOException{
@@ -245,9 +256,9 @@ public class Part1{
         System.out.println("----------------------------------------");
         DatagramPacket responseB=stageB(hostname,responseA);
         System.out.println("----------------------------------------");
-        stageC(hostname, responseB);
+        ByteBuffer responseC = stageC(hostname, responseB);
         System.out.println("----------------------------------------");
-
+        stageD(responseC);
     }
 
 
