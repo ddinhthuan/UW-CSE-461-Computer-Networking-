@@ -18,7 +18,7 @@ public class Part1{
     private static OutputStream out = null;
 
     private static final String HOSTNAME = "attu2.cs.washington.edu";
-    private static final int TIMEOUT = 1000; // 10 seconds
+    private static final int TIMEOUT = 1000;
 
     private static void initializeUDPSocket() {
         try {
@@ -53,6 +53,7 @@ public class Part1{
        out.close();
        tcpSocket.close();
     }
+
 
     public static DatagramPacket stageA(int port){
 
@@ -129,7 +130,6 @@ public class Part1{
         //Some socket parameter
         int packet_id =0;
         int TIMEOUT_MILLIS =500;
-        DatagramSocket socket = null;
         while(packet_id!=num){
             //Create payloadbuffer with size of len + padding
             ByteBuffer payloadBuffer =ByteBuffer.allocate(4+len+(4-len%4)); //padding + len+4
@@ -260,35 +260,49 @@ public class Part1{
 
         //Create Header
         //Client sends num2 payloads each of length len2
+        // num2 separate payloads each with a separate header on the client side
+        // but it will show up as a stream of concatenated packets on the server side.
+        //https://us.edstem.org/courses/403/discussion/24141
 
-        //header head =new header(len2*num2+(4-(len2*num2)%4),secretC,1,68); // TODO -- not sure which header
-        header head =new header(num2*len2,secretC,1,68);
-        ByteBuffer headerBuffer = head.byteBuffer;
+        int packetNum =1;
+        while(packetNum <= num2){
+            header head =new header(len2,secretC,1,68);//TODO not sure which header
+           // header head =new header(len2+(4-len2%4),secretC,1,68);
+            ByteBuffer headerBuffer = head.byteBuffer;
 
-        //create Payload
-        ByteBuffer payloadBuffer =ByteBuffer.allocate(len2*num2+(4-(len2*num2)%4)); //padding -- 4 byte aligned
-        //each payload containing all bytes set to the character c
-        while(payloadBuffer.hasRemaining()) {
-            payloadBuffer.putChar(c);
-        }
-        System.out.println("size of payload: "+payloadBuffer.array().length);
+            //create Payload
+            ByteBuffer payloadBuffer =ByteBuffer.allocate(len2+(4-len2%4)); //padding -- 4 byte aligned
+            //each payload containing all bytes set to the character c
+            while(payloadBuffer.hasRemaining()) {
+                payloadBuffer.putChar(c);
+            }
+            System.out.println("size of payload: "+payloadBuffer.array().length);
 
-        //Create packetBuffer using both header and payload
-        ByteBuffer packetBuffer =ByteBuffer.allocate(headerBuffer.capacity()+payloadBuffer.capacity());
-        packetBuffer.put(headerBuffer.array());
-        packetBuffer.put(payloadBuffer.array());
-        System.out.println("send out packet : "+Arrays.toString(packetBuffer.array()));
+            //Create packetBuffer using both header and payload
+            ByteBuffer packetBuffer =ByteBuffer.allocate(headerBuffer.capacity()+payloadBuffer.capacity());
+            packetBuffer.put(headerBuffer.array());
+            packetBuffer.put(payloadBuffer.array());
+            System.out.println("send out packet " + packetNum + ": " +Arrays.toString(packetBuffer.array()));
 
-        ByteBuffer resp = null;
-        try {
+           // System.out.println("Connected? " + tcpSocket.isConnected());
 
-            System.out.println("Connected? " + tcpSocket.isConnected());
-
+            /*
             //Send data to the server
             out = tcpSocket.getOutputStream();
             out.write(packetBuffer.array());
 
+             */
+            PrintWriter pr =new PrintWriter(tcpSocket.getOutputStream());
+            //https://docs.oracle.com/javase/8/docs/api/java/io/PrintWriter.html
+            pr.println(Arrays.toString(packetBuffer.array()));
+            pr.flush();
             System.out.println("sent to server");
+
+            packetNum+=1;
+        }
+
+        ByteBuffer resp = null;
+        try {
 
             //Read data from the server
             //Server responds with one integer payload
@@ -309,7 +323,6 @@ public class Part1{
         } finally {
             closeTCPSocket();
         }
-
 
 
     }
