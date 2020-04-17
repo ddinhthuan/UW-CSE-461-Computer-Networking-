@@ -93,7 +93,7 @@ public class Part1{
         return response;
 
     }
-    public static void stageB(String hostname,DatagramPacket response){
+    public static DatagramPacket stageB(String hostname,DatagramPacket response){
         /*
         Extract para from stage A response
          */
@@ -109,7 +109,6 @@ public class Part1{
         //Some socket parameter
         int packet_id =0;
         int TIMEOUT_MILLIS =500;
-        boolean success = true;
         DatagramSocket socket = null;
         while(packet_id!=num){
             //Create payloadbuffer with size of len + padding
@@ -127,7 +126,6 @@ public class Part1{
 
             boolean receivedResponse = false;
             int tries = 0;
-          //  int MAX_TRIES = 10;
            do {
                 try {
                     socket = new DatagramSocket();  //open a socket
@@ -161,19 +159,13 @@ public class Part1{
                         System.err.println("Could not get response");
                         System.err.println(ex);
                 }
-                /*
-                finally {
-                    if (socket != null)
-                        socket.close();
-                }
 
-                 */
            }while((!receivedResponse));
 
             packet_id+=1;
         }
         try{
-            byte[] buffer2 = new byte[head.byteBuffer.array().length+8];
+            byte[] buffer2 = new byte[head.byteBuffer.array().length+8]; // 12 + 4 + 4
             response = new DatagramPacket(buffer2, buffer2.length);
             assert socket != null;
             socket.receive(response); //await reply
@@ -183,27 +175,36 @@ public class Part1{
 
     }catch (IOException e){
         e.printStackTrace();
+    }  finally {
+        if (socket != null)
+            socket.close();
     }
 
         int tcp_port = ByteBuffer.wrap(response.getData()).getInt(12);
         int secretB = ByteBuffer.wrap(response.getData()).getInt(16);
         System.out.println("tcp port " + tcp_port + " secretB " + secretB);
         System.out.println("stage B complete");
+
+        return response;
     }
 
-    public static void stageC(String hostname,DatagramPacket response) throws IOException {
+    public static void stageC(String hostname,DatagramPacket response) {
          /*
         Extract para from stage B response
          */
-        //TODO fix these
         int tcp_port = ByteBuffer.wrap(response.getData()).getInt(12);
         int secretB = ByteBuffer.wrap(response.getData()).getInt(16);
-
+/*
         //Create Header
-     //   header head =new header(len+4,secretB,1,68);
-     //   ByteBuffer headerBuffer = head.byteBuffer;
+        // header head =new header(12,secretB,1,68);
+        ByteBuffer headerBuffer = head.byteBuffer;
 
-
+ */
+        //Just connect to the server then wait to receive data
+        //after stage b, the server just opens up TCP socket and listens
+        // for an incoming client connection,
+        // as soon as it accepts that connection it will send part C
+        // Reference: https://us.edstem.org/courses/403/discussion/30687
         Socket socket = null;
         try {
             socket = new Socket(hostname, tcp_port);
@@ -240,9 +241,11 @@ public class Part1{
 
         String hostname = "attu2.cs.washington.edu";
         int udp_port = 12235;
-        DatagramPacket response=stageA(hostname,udp_port);
+        DatagramPacket responseA=stageA(hostname,udp_port);
         System.out.println("----------------------------------------");
-        stageB(hostname,response);
+        DatagramPacket responseB=stageB(hostname,responseA);
+        System.out.println("----------------------------------------");
+        stageC(hostname, responseB);
         System.out.println("----------------------------------------");
 
     }
