@@ -115,7 +115,7 @@ public class Part1{
             //Create payloadbuffer with size of len + padding
             ByteBuffer payloadBuffer =ByteBuffer.allocate(4+len+(4-len%4)); //padding + len+4
             payloadBuffer.putInt(packet_id); //first 4 bytes of payload is packet_id
-            System.out.println("size of payload "+payloadBuffer.array().length);
+     //       System.out.println("size of payload "+payloadBuffer.array().length);
 
             //Create packetBuffer using both header and payload
             ByteBuffer packetBuffer =ByteBuffer.allocate(headerBuffer.capacity()+payloadBuffer.capacity());
@@ -123,11 +123,11 @@ public class Part1{
             packetBuffer.put(headerBuffer.array());
             packetBuffer.put(payloadBuffer.array());
 
-            System.out.println("size of packet "+packetBuffer.array().length); //should be payload size + 12
+//            System.out.println("size of packet "+packetBuffer.array().length); //should be payload size + 12
 
             boolean receivedResponse = false;
             int tries = 0;
-            int MAX_TRIES = 10;
+          //  int MAX_TRIES = 10;
            do {
                 try {
                     socket = new DatagramSocket();  //open a socket
@@ -149,40 +149,46 @@ public class Part1{
 
                     socket.receive(response); //await reply
 
+                    //Verify server acknowledged packet by replying with identifier
                     receivedResponse =true;
                     System.out.println("Received packet " + packet_id + " data : " +
-                            Arrays.toString(response.getData()));
+                    //        Arrays.toString(response.getData()));
+                              ByteBuffer.wrap(response.getData()).getInt(12));
                     System.out.println();
 
                 } catch (IOException ex) {
                        tries ++;
                         System.err.println("Could not get response");
                         System.err.println(ex);
-                } finally {
+                }
+                /*
+                finally {
                     if (socket != null)
                         socket.close();
                 }
-           }while((!receivedResponse)&&(tries<MAX_TRIES));
 
-
-            if(!receivedResponse){
-                System.out.println("No response -- giving up");
-                success = false;
-            }
+                 */
+           }while((!receivedResponse));
 
             packet_id+=1;
         }
+        try{
+            byte[] buffer2 = new byte[head.byteBuffer.array().length+8];
+            response = new DatagramPacket(buffer2, buffer2.length);
+            assert socket != null;
+            socket.receive(response); //await reply
 
-        if(success) {
-            //TODO receive last packet containing two integers
+            System.out.println("Received final packet " +
+                        Arrays.toString(response.getData()));
 
- //           int tcp_port = ByteBuffer.wrap(response.getData()).getInt(12);
- //           int secretB = ByteBuffer.wrap(response.getData()).getInt(16);
- //           System.out.println("port " + tcp_port + " secretB " + secretB);
-            System.out.println("stage B complete");
-        }else {
-            System.err.println("STAGE B FAILED");
-        }
+    }catch (IOException e){
+        e.printStackTrace();
+    }
+
+        int tcp_port = ByteBuffer.wrap(response.getData()).getInt(12);
+        int secretB = ByteBuffer.wrap(response.getData()).getInt(16);
+        System.out.println("tcp port " + tcp_port + " secretB " + secretB);
+        System.out.println("stage B complete");
     }
 
     public static void stageC(String hostname,DatagramPacket response) throws IOException {
