@@ -12,7 +12,7 @@ public class multiThreadServer {
     public multiThreadServer(int port)throws IOException {
         ServerSocket serverSocket =new ServerSocket(port);//(12235 );
         System.out.println("server start");
-        udpSocket =initializeUDPSocket(port);
+        udpSocket =initializeUDPSocket(port,TIMEOUT);
         byte[] buffer2 = new byte[256];
 
         String text = null;
@@ -51,12 +51,12 @@ public class multiThreadServer {
     }
 
 
-    private  DatagramSocket initializeUDPSocket(int port) {
+    private  DatagramSocket initializeUDPSocket(int port,int Time) {
         DatagramSocket tmpSocket=null;
         try {
             //connect to the server
             tmpSocket = new DatagramSocket(port);
-            tmpSocket.setSoTimeout(TIMEOUT); // set timeout on the connection - 10 seconds
+            tmpSocket.setSoTimeout(Time); // set timeout on the connection - 10 seconds
             System.out.println("create a new udpsocket and listen to port "+port );
         } catch (IOException ex){
             System.err.println("Could not connect to " + HOSTNAME);
@@ -75,11 +75,7 @@ public class multiThreadServer {
         short studentID=responseBuf.getShort(10);
         String sendString = "hello world\0";
         byte[] dst=new byte[sendString.getBytes().length];
-        int off =12;int len0 =sendString.getBytes().length;int size =dst.length;
         responseBuf.get(dst);responseBuf.get(dst); //TODO need to find out how to slice ... right now just temp solution
-        System.out.println("Dst "+Arrays.toString(dst));
-        System.out.println("buf "+Arrays.toString( sendString.getBytes()));
-        System.out.println("cap "+responseBuf.capacity()+" send "+sendString.getBytes().length+12);
 
         if(!Arrays.equals(dst,sendString.getBytes())){
             closeUDPSocket();
@@ -93,10 +89,9 @@ public class multiThreadServer {
         int udp_port = rand.nextInt(1000)+1024;//can't generate port below 1024: permission denied
         int serverPsecretA = rand.nextInt(1000);
         ByteBuffer returnPacket = ByteBuffer.allocate(28);
-        returnPacket.putInt(16); //payloadlen
-        returnPacket.putInt(clientPsecret);   //psecret
-        returnPacket.putShort((short)2); //step
-        returnPacket.putShort(studentID); //studentID
+        header head =new header(16,clientPsecret,2,studentID);
+        ByteBuffer headerBuffer =head.byteBuffer;
+        returnPacket.put(headerBuffer.array());
         returnPacket.putInt(num);
         returnPacket.putInt(len);
         returnPacket.putInt(udp_port);
@@ -106,7 +101,7 @@ public class multiThreadServer {
         try{
 
             udpSocket.send(UDPPacket);
-            DatagramSocket ds = initializeUDPSocket(udp_port);
+            DatagramSocket ds = initializeUDPSocket(udp_port,3000);
             System.out.println("port after re intialized :"+ds.getPort());
 
             Thread thread =new ClientHandler(ds,serverPsecretA);
