@@ -4,7 +4,7 @@ import java.text.*;
 import java.util.*;
 import java.net.*;
 public class multiThreadServer {
-    public void multiTrheadServer(int port)throws IOException {
+    public multiThreadServer(int port)throws IOException {
         ServerSocket serverSocket =new ServerSocket(port);//(12235 );
         System.out.println("server start");
         while(true){
