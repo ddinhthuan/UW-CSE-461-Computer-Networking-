@@ -14,54 +14,36 @@ public class ClientHandler extends Thread{
     //copy from lab1
     private static DatagramSocket udpSocket = null;
     private static Socket tcpSocket = null;
-    private static InputStream in = null;
-    private static OutputStream out = null;
 
-    private static final String HOSTNAME = "attu2.cs.washington.edu";
-    private static final int TIMEOUT = 1000;
 
 //    final  socket;
-    final int psecretA =0;
-    final int psecretB =333;
-    final int psecretC =666;
-    final int psecretD =444;
-    public ClientHandler(DatagramSocket udpSocket) {
+      int psecretA =0;
+
+
+    public ClientHandler(DatagramSocket udpSocket,int psecretA) {
 
         this.udpSocket =udpSocket;
+        this.psecretA  =psecretA;
 
 
     }
     @Override
     public void run() {
         byte[] received=new byte[10000];//need to double check here
-        String toreturn;
-        DatagramPacket DpReceive = null;
+        DatagramPacket receivedPacket = null;
         while (true) {
             try {
 
                 // Ask user what he wants
 
                 // receive the answer from client
-                DpReceive = new DatagramPacket(received, received.length);// not sure how large I should assign here
-                readAllBytes rb = new readAllBytes();
-                received = rb.readAllBytes_fn(in);
-                ByteBuffer receivedBuf =ByteBuffer.wrap(received);
-                //int payload_len=receivedBuf.getInt(0);
-                int psecret=receivedBuf.getInt(4);
-                //int step=receivedBuf.getShort(8);
-                //int studentID=receivedBuf.getShort(10);
+                receivedPacket = new DatagramPacket(received, received.length);// not sure how large I should assign here
+
+                udpSocket.receive(receivedPacket);
+                ByteBuffer receivedBuf =ByteBuffer.wrap(receivedPacket.getData());
+                System.out.println(Arrays.toString(receivedBuf.array()));
 
 
-
-                switch (psecret){
-                    case psecretB: stageB();
-                    default: closeUDPSocket();
-
-                }
-
-
-                // write on output stream based on the
-                // answer from the client
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -87,21 +69,21 @@ public class ClientHandler extends Thread{
         udpSocket.close();
     }
 
-    private static void initializeTCPSocket(int tcp_port) throws IOException {
-        try {
-            tcpSocket = new Socket();
-            InetSocketAddress address = new InetSocketAddress(HOSTNAME, tcp_port);
-            tcpSocket.connect(address, TIMEOUT);
+//    private static void initializeTCPSocket(int tcp_port) throws IOException {
+//        try {
+//            tcpSocket = new Socket();
+//            InetSocketAddress address = new InetSocketAddress(HOSTNAME, tcp_port);
+//            tcpSocket.connect(address, TIMEOUT);
+//
+//        } catch (IOException e){
+//            System.err.println("Could not connect");
+//            System.err.println(e);
+//        }
+//    }
 
-        } catch (IOException e){
-            System.err.println("Could not connect");
-            System.err.println(e);
-        }
-    }
-
-    private static void closeTCPSocket() throws IOException {
-        in.close();
-        out.close();
-        tcpSocket.close();
-    }
+//    private static void closeTCPSocket() throws IOException {
+//        in.close();
+//        out.close();
+//        tcpSocket.close();
+//    }
 }

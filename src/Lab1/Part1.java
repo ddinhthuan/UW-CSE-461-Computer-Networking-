@@ -341,11 +341,11 @@ public class Part1{
 
     public static void main(String[] args)throws IOException{
         int udp_port = 12235;
-        udp_port =4999;
+        udp_port =2425;
         DatagramPacket responseA=stageA(udp_port);
         System.out.println("----------------------------------------");
-//        DatagramPacket responseB=stageB(responseA);
-//        System.out.println("----------------------------------------");
+        DatagramPacket responseB=stageB(responseA);
+        System.out.println("----------------------------------------");
 //        ByteBuffer responseC = stageC(responseB);
 //        System.out.println("----------------------------------------");
 //        stageD(responseC);

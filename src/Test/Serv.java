@@ -5,6 +5,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.Arrays;
 
 
 public class Serv {
@@ -66,6 +67,7 @@ public static void main(String[] args) throws IOException {
         }
         try {
         s.receive(p);
+        System.out.println("get the data"+ Arrays.toString((p.getData())));
        }catch (IOException e) {
             e.printStackTrace();
                 System.out.println("IO EXcept");
