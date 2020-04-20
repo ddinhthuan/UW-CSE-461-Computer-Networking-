@@ -26,7 +26,7 @@ public class ClientHandler extends Thread{
     final int psecretB =333;
     final int psecretC =666;
     final int psecretD =444;
-    public ClientHandler(DatagramSocket udpSocket, InputStream in, OutputStream out){
+    public ClientHandler(DatagramSocket udpSocket, InputStream in, OutputStream out) {
 
         this.udpSocket =udpSocket;
         this.in = in;
