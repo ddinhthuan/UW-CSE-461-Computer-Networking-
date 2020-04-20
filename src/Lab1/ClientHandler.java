@@ -2,84 +2,118 @@ package Lab1;
 
 
 import java.io.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Date;
-
+import java.util.Random;
 public class ClientHandler extends Thread{
-    final Socket socket;
-    final InputStream dis;
-    final OutputStream dos;
-    public ClientHandler(Socket socket, InputStream in, OutputStream out){
+    //copy from lab1
+    private static DatagramSocket udpSocket = null;
+    private static Socket tcpSocket = null;
+    private static InputStream in = null;
+    private static OutputStream out = null;
 
-        this.socket =socket;
-        this.dis = in;
-        this.dos =out;
+    private static final String HOSTNAME = "attu2.cs.washington.edu";
+    private static final int TIMEOUT = 1000;
+    boolean stageADone=false;
+
+//    final  socket;
+    final int psecretA =0;
+    final int psecretB =333;
+    final int psecretC =666;
+    final int psecretD =444;
+    public ClientHandler(DatagramSocket udpSocket, InputStream in, OutputStream out){
+
+        this.udpSocket =udpSocket;
+        this.in = in;
+        this.out =out;
+
     }
     @Override
     public void run() {
-        byte[] received;
+        byte[] received=new byte[10000];//need to double check here
         String toreturn;
+        DatagramPacket DpReceive = null;
         while (true) {
             try {
 
                 // Ask user what he wants
 
                 // receive the answer from client
+                DpReceive = new DatagramPacket(received, received.length);// not sure how large I should assign here
                 readAllBytes rb = new readAllBytes();
-                received = rb.readAllBytes_fn(dis);
+                received = rb.readAllBytes_fn(in);
                 ByteBuffer receivedBuf =ByteBuffer.wrap(received);
-                int payload=receivedBuf.getInt(0);
+                //int payload_len=receivedBuf.getInt(0);
                 int psecret=receivedBuf.getInt(4);
-                int step=receivedBuf.getShort(8);
-                int studentID=receivedBuf.getShort(10);
+                //int step=receivedBuf.getShort(8);
+                //int studentID=receivedBuf.getShort(10);
 
 
 
-                if (received.equals("/0")) {
-                    System.out.println("Client " + this.socket + " sends exit...");
-                    System.out.println("Closing this connection.");
-                    this.socket.close();
-                    System.out.println("Connection closed");
+                switch (psecret){
+                    case psecretA: stageA(receivedBuf);
+                    case psecretB: stageB();
+
+                    default: closeUDPSocket();
+
+                }
+                if(stageADone){
+                    closeUDPSocket();
                     break;
                 }
 
-                // creating Date object
-
                 // write on output stream based on the
                 // answer from the client
-                PrintWriter pr = new PrintWriter(socket.getOutputStream());
-                pr.println("Exit");
-                pr.flush();
-//                switch (received) {
-//
-//                    case "Date" :
-//                        toreturn = "000";
-//
-//                        break;
-//
-//                    case "Time" :
-//                        break;
-//
-//                    default:
-//                        break;
-//                }
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
-        try {
-            // closing resources
-            this.dis.close();
-            this.dos.close();
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
     }
-    private void stageA(){
+    private void stageA(ByteBuffer receivedBuf){
+        DatagramPacket send=null;
+        int payload_len=receivedBuf.getInt(0);
+        int clientPsecret=receivedBuf.getInt(4);
+        short step=receivedBuf.getShort(8);
+        short studentID=receivedBuf.getShort(10);
+        String sendString = "hello world\0";
+        byte[] dst=new byte[sendString.getBytes().length];
+        receivedBuf.get( dst, 12, sendString.getBytes().length);
+            if(!Arrays.equals(dst,sendString.getBytes())||receivedBuf.capacity()!=12+sendString.getBytes().length){
+            closeUDPSocket();
+            }
+
+            Random rand = new Random();
+            int num = rand.nextInt(1000);
+            int len = rand.nextInt(1000);
+            int udp_port = rand.nextInt(1000);
+            int serverPsecretA = rand.nextInt(1000);
+            ByteBuffer returnPacket = ByteBuffer.allocate(28);
+            returnPacket.putInt(16); //payloadlen
+            returnPacket.putInt(clientPsecret);   //psecret
+            returnPacket.putShort((short)2); //step
+            returnPacket.putShort(studentID); //studentID
+            returnPacket.putInt(num);
+            returnPacket.putInt(len);
+            returnPacket.putInt(udp_port);
+            returnPacket.putInt(serverPsecretA);
+            DatagramPacket UDPPacket =new DatagramPacket(returnPacket.array(),returnPacket.array().length);
+            try{
+
+                udpSocket.send(UDPPacket);
+            }catch (IOException e){
+                System.err.println("can not send return val back");
+            }
+            stageADone =true;
+
 
     }
     private void stageB(){
@@ -91,7 +125,27 @@ public class ClientHandler extends Thread{
     private void stageD(){
 
     }
-    private void stopConnection(){
 
+
+    private static void closeUDPSocket() {
+        udpSocket.close();
+    }
+
+    private static void initializeTCPSocket(int tcp_port) throws IOException {
+        try {
+            tcpSocket = new Socket();
+            InetSocketAddress address = new InetSocketAddress(HOSTNAME, tcp_port);
+            tcpSocket.connect(address, TIMEOUT);
+
+        } catch (IOException e){
+            System.err.println("Could not connect");
+            System.err.println(e);
+        }
+    }
+
+    private static void closeTCPSocket() throws IOException {
+        in.close();
+        out.close();
+        tcpSocket.close();
     }
 }

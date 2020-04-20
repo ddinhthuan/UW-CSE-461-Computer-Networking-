@@ -18,6 +18,6 @@ The Server should respond to the client in four stages.In each stage, the server
 public class Part2 {
 
     public static void main(String[] args) throws IOException{
-       multiThreadServer mtSever =new multiThreadServer(12235);
+       multiThreadServer mtSever =new multiThreadServer(4999);
     }
 }
