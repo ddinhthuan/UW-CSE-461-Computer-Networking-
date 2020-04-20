@@ -18,6 +18,12 @@ public class ClientHandler extends Thread{
 
 //    final  socket;
       int psecretA =0;
+      int psecretB =Integer.MAX_VALUE;
+      int psecretC =Integer.MAX_VALUE;
+    private static final int TIMEOUT = 1000;
+    private static final String HOSTNAME = "localhost";
+    private static InputStream in =null;
+    private static OutputStream out =null;
 
 
     public ClientHandler(DatagramSocket udpSocket,int psecretA) {
@@ -42,6 +48,22 @@ public class ClientHandler extends Thread{
                 udpSocket.receive(receivedPacket);
                 ByteBuffer receivedBuf =ByteBuffer.wrap(receivedPacket.getData());
                 System.out.println(Arrays.toString(receivedBuf.array()));
+                int payload_len=receivedBuf.getInt(0);
+                int clientPsecret=receivedBuf.getInt(4);
+                short step=receivedBuf.getShort(8);
+                short studentID=receivedBuf.getShort(10);
+                if(step!=1){
+                    if(udpSocket!=null&& udpSocket.isConnected())closeUDPSocket();
+                    if(tcpSocket!=null&& tcpSocket.isConnected())closeTCPSocket();
+                    break;
+                }
+                if(clientPsecret==psecretA ) {
+                    stageB();
+                }else if(clientPsecret==psecretB ){
+                    stageC();
+                }else if(clientPsecret==psecretC){
+                    stageD();
+                }
 
 
 
@@ -70,21 +92,21 @@ public class ClientHandler extends Thread{
         udpSocket.close();
     }
 
-//    private static void initializeTCPSocket(int tcp_port) throws IOException {
-//        try {
-//            tcpSocket = new Socket();
-//            InetSocketAddress address = new InetSocketAddress(HOSTNAME, tcp_port);
-//            tcpSocket.connect(address, TIMEOUT);
-//
-//        } catch (IOException e){
-//            System.err.println("Could not connect");
-//            System.err.println(e);
-//        }
-//    }
+    private static void initializeTCPSocket(int tcp_port) throws IOException {
+        try {
+            tcpSocket = new Socket();
+            InetSocketAddress address = new InetSocketAddress(HOSTNAME, tcp_port);
+            tcpSocket.connect(address, TIMEOUT);
 
-//    private static void closeTCPSocket() throws IOException {
-//        in.close();
-//        out.close();
-//        tcpSocket.close();
-//    }
+        } catch (IOException e){
+            System.err.println("Could not connect");
+            System.err.println(e);
+        }
+    }
+
+    private static void closeTCPSocket() throws IOException {
+        in.close();
+        out.close();
+        tcpSocket.close();
+    }
 }
