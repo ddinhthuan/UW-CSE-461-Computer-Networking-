@@ -226,7 +226,9 @@ public class Part1{
         try {
             //Read data from the server
             in = tcpSocket.getInputStream();
-            byte[] inBuf = in.readAllBytes();
+//            byte[] inBuf = in.readAllBytes();
+            readAllBytes rb =new readAllBytes();
+            byte[] inBuf = rb.readAllBytes_fn(in);
             System.out.println("Response: " + Arrays.toString(inBuf));
             resp = ByteBuffer.wrap(inBuf);
 
@@ -307,7 +309,9 @@ public class Part1{
             //Read data from the server
             //Server responds with one integer payload
             in = tcpSocket.getInputStream();
-            byte[] inBuf = in.readAllBytes();
+//            byte[] inBuf = in.readAllBytes();
+            readAllBytes rb =new readAllBytes();
+            byte[] inBuf = rb.readAllBytes_fn(in);
             System.out.println("Response: " + Arrays.toString(inBuf));
             resp = ByteBuffer.wrap(inBuf);
 
