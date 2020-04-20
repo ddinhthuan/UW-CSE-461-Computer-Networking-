@@ -26,13 +26,16 @@ public class ClientHandler extends Thread{
                 // Ask user what he wants
 
                 // receive the answer from client
-               readAllBytes rb = new readAllBytes();
-               received = rb.readAllBytes_fn(dis);
-                InputStreamReader in =new InputStreamReader(socket.getInputStream());
-                //BufferReader def : https://www.geeksforgeeks.org/java-io-bufferedreader-class-java/
-                BufferedReader bf =new BufferedReader(in);
-                String str =bf.readLine();
-                System.out.println("server : "+str);
+                readAllBytes rb = new readAllBytes();
+                received = rb.readAllBytes_fn(dis);
+                ByteBuffer receivedBuf =ByteBuffer.wrap(received);
+                int payload=receivedBuf.getInt(0);
+                int psecret=receivedBuf.getInt(4);
+                int step=receivedBuf.getShort(8);
+                int studentID=receivedBuf.getShort(10);
+
+
+
                 if (received.equals("/0")) {
                     System.out.println("Client " + this.socket + " sends exit...");
                     System.out.println("Closing this connection.");
@@ -74,55 +77,21 @@ public class ClientHandler extends Thread{
         } catch (IOException e) {
             e.printStackTrace();
         }
-//        ByteBuffer received=null;
-//        ByteBuffer toreturn;
-//        while(true){
-//            try{
-//                readAllBytes rb =new readAllBytes();
-//                byte[] disBuf=rb.readAllBytes_fn(in);
-//                received =ByteBuffer.wrap(disBuf);
-//                if(received.equals("/0")){
-//                    System.out.println("Client " + this.socket + " sends exit...");
-//                    System.out.println("Closing this connection.");
-//                    this.socket.close();
-//                    System.out.println("Connection closed");
-//                    break;
-//                }
-//                PrintWriter pr =new PrintWriter(socket.getOutputStream());
-//                int stage =0;
-//                //I tried to manage different stage using switch
-//                switch(stage){
-//                    case 1 :
-//                        pr.println();
-//                        break;
-//
-//                    case 2 :
-//                        pr.println();
-//                        break;
-//                    case 3:
-//                        pr.println();
-//                        break;
-//                    default:
-//                        pr.println();
-//                        break;
-//
-//                }
-//                pr.flush();
-//
-//            }catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//            try
-//            {
-//                // closing resources
-//                this.in.close();
-//                this.out.close();
-//
-//            }catch(IOException e){
-//                e.printStackTrace();
-//            }
-//        }
-//    }
+
+    }
+    private void stageA(){
+
+    }
+    private void stageB(){
+
+    }
+    private void stageC(){
+
+    }
+    private void stageD(){
+
+    }
+    private void stopConnection(){
 
     }
 }

@@ -16,19 +16,8 @@ the server does not receive the correct secret
 The Server should respond to the client in four stages.In each stage, the server should randomly generate a secret to be sent to the client.
  */
 public class Part2 {
-    private void stageA(){
 
-    }
-    private void stageB(){
-
-    }
-    private void stageC(){
-
-    }
-    private void stageD(){
-
-    }
     public static void main(String[] args) throws IOException{
-
+       multiThreadServer mtSever =new multiThreadServer(12235);
     }
 }
