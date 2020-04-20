@@ -19,18 +19,16 @@ public class ClientHandler extends Thread{
 
     private static final String HOSTNAME = "attu2.cs.washington.edu";
     private static final int TIMEOUT = 1000;
-    boolean stageADone=false;
 
 //    final  socket;
     final int psecretA =0;
     final int psecretB =333;
     final int psecretC =666;
     final int psecretD =444;
-    public ClientHandler(DatagramSocket udpSocket, InputStream in, OutputStream out) {
+    public ClientHandler(DatagramSocket udpSocket) {
 
         this.udpSocket =udpSocket;
-        this.in = in;
-        this.out =out;
+
 
     }
     @Override
@@ -56,16 +54,11 @@ public class ClientHandler extends Thread{
 
 
                 switch (psecret){
-                    case psecretA: stageA(receivedBuf);
                     case psecretB: stageB();
-
                     default: closeUDPSocket();
 
                 }
-                if(stageADone){
-                    closeUDPSocket();
-                    break;
-                }
+
 
                 // write on output stream based on the
                 // answer from the client
@@ -78,44 +71,7 @@ public class ClientHandler extends Thread{
 
 
     }
-    private void stageA(ByteBuffer receivedBuf){
-        DatagramPacket send=null;
-        int payload_len=receivedBuf.getInt(0);
-        int clientPsecret=receivedBuf.getInt(4);
-        short step=receivedBuf.getShort(8);
-        short studentID=receivedBuf.getShort(10);
-        String sendString = "hello world\0";
-        byte[] dst=new byte[sendString.getBytes().length];
-        receivedBuf.get( dst, 12, sendString.getBytes().length);
-            if(!Arrays.equals(dst,sendString.getBytes())||receivedBuf.capacity()!=12+sendString.getBytes().length){
-            closeUDPSocket();
-            }
 
-            Random rand = new Random();
-            int num = rand.nextInt(1000);
-            int len = rand.nextInt(1000);
-            int udp_port = rand.nextInt(1000);
-            int serverPsecretA = rand.nextInt(1000);
-            ByteBuffer returnPacket = ByteBuffer.allocate(28);
-            returnPacket.putInt(16); //payloadlen
-            returnPacket.putInt(clientPsecret);   //psecret
-            returnPacket.putShort((short)2); //step
-            returnPacket.putShort(studentID); //studentID
-            returnPacket.putInt(num);
-            returnPacket.putInt(len);
-            returnPacket.putInt(udp_port);
-            returnPacket.putInt(serverPsecretA);
-            DatagramPacket UDPPacket =new DatagramPacket(returnPacket.array(),returnPacket.array().length);
-            try{
-
-                udpSocket.send(UDPPacket);
-            }catch (IOException e){
-                System.err.println("can not send return val back");
-            }
-            stageADone =true;
-
-
-    }
     private void stageB(){
 
     }

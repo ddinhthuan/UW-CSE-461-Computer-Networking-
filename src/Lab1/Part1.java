@@ -17,7 +17,9 @@ public class Part1{
     private static InputStream in = null;
     private static OutputStream out = null;
 
-    private static final String HOSTNAME = "attu2.cs.washington.edu";
+    //private static final String HOSTNAME = "attu2.cs.washington.edu";
+    private static final String HOSTNAME = "localhost";
+
     private static final int TIMEOUT = 1000;
 
     private static void initializeUDPSocket() {
@@ -79,6 +81,7 @@ public class Part1{
             packetBuffer.put(headerBuffer.array());
             packetBuffer.put(sendStringBytes);
             System.out.println("send out packet : "+Arrays.toString(packetBuffer.array()));
+            System.out.println("byte to hext: "+byteArrayToHex(packetBuffer.array()));
 
             DatagramPacket request = new DatagramPacket(packetBuffer.array(), packetBuffer.array().length, host, port);
             byte[] buffer2 = new byte[packetBuffer.array().length];
@@ -103,6 +106,7 @@ public class Part1{
             int secretA = ByteBuffer.wrap(response.getData()).getInt(24);
             System.out.println("num: " + num + " len: " + len + " port " + udp_port + " secretA " + secretA);
             System.out.println("stage A complete");
+            System.out.println("byte array to string"+byteArrayToHex(response.getData()));
            // String quote = new String(buffer, 0, response.getLength());
             //System.out.println(quote);
 
@@ -169,6 +173,8 @@ public class Part1{
                     System.out.println("Received packet " + packet_id + " data : " +
                     //        Arrays.toString(response.getData()));
                               ByteBuffer.wrap(response.getData()).getInt(12));
+
+                    System.out.println("byte array to string"+byteArrayToHex(response.getData()));
                     System.out.println();
 
                 } catch (IOException ex) {
@@ -230,6 +236,7 @@ public class Part1{
             readAllBytes rb =new readAllBytes();
             byte[] inBuf = rb.readAllBytes_fn(in);
             System.out.println("Response: " + Arrays.toString(inBuf));
+            System.out.println("byte array to string"+byteArrayToHex(inBuf));
             resp = ByteBuffer.wrap(inBuf);
 
             int num2 = resp.getInt(12);
@@ -285,7 +292,7 @@ public class Part1{
             packetBuffer.put(headerBuffer.array());
             packetBuffer.put(payloadBuffer.array());
             System.out.println("send out packet " + packetNum + ": " +Arrays.toString(packetBuffer.array()));
-
+            System.out.println("byte array to string"+byteArrayToHex(packetBuffer.array()));
            // System.out.println("Connected? " + tcpSocket.isConnected());
 
             /*
@@ -334,13 +341,14 @@ public class Part1{
 
     public static void main(String[] args)throws IOException{
         int udp_port = 12235;
+        udp_port =4999;
         DatagramPacket responseA=stageA(udp_port);
         System.out.println("----------------------------------------");
-        DatagramPacket responseB=stageB(responseA);
-        System.out.println("----------------------------------------");
-        ByteBuffer responseC = stageC(responseB);
-        System.out.println("----------------------------------------");
-        stageD(responseC);
+//        DatagramPacket responseB=stageB(responseA);
+//        System.out.println("----------------------------------------");
+//        ByteBuffer responseC = stageC(responseB);
+//        System.out.println("----------------------------------------");
+//        stageD(responseC);
     }
 
 
