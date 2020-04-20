@@ -7,27 +7,61 @@ package Lab1;
 import java.net.*;
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.*;
 import java.util.Arrays;
-import Lab1.header;
-
 
 
 public class Part1{
-    public static DatagramPacket stageA(String hostname, int port){
 
+    private static DatagramSocket udpSocket = null;
+    private static Socket tcpSocket = null;
+    private static InputStream in = null;
+    private static OutputStream out = null;
+
+    private static final String HOSTNAME = "attu2.cs.washington.edu";
+    private static final int TIMEOUT = 1000;
+
+    private static void initializeUDPSocket() {
+        try {
+            //connect to the server
+            udpSocket = new DatagramSocket();
+            udpSocket.setSoTimeout(TIMEOUT); // set timeout on the connection - 10 seconds
+
+        } catch (IOException ex){
+             System.err.println("Could not connect to " + HOSTNAME);
+             System.err.println(ex);
+        }
+    }
+
+    private static void closeUDPSocket() {
+        udpSocket.close();
+    }
+
+    private static void initializeTCPSocket(int tcp_port) throws IOException {
+        try {
+            tcpSocket = new Socket();
+            InetSocketAddress address = new InetSocketAddress(HOSTNAME, tcp_port);
+            tcpSocket.connect(address, TIMEOUT);
+
+        } catch (IOException e){
+            System.err.println("Could not connect");
+            System.err.println(e);
+        }
+    }
+
+    private static void closeTCPSocket() throws IOException {
+       in.close();
+       out.close();
+       tcpSocket.close();
+    }
+
+
+    public static DatagramPacket stageA(int port){
 
         //Step 1 -- client sends single UDP packet
-        DatagramSocket socket = null;
         DatagramPacket response =null;
-
         try {
-
-            socket = new DatagramSocket();  //open a socket on port 12235
-            //connect to the server
-            socket.setSoTimeout(10000); // set timeout on the connection - 10 seconds
-            InetAddress host = InetAddress.getByName(hostname);
-
+            initializeUDPSocket();
+            InetAddress host = InetAddress.getByName(HOSTNAME);
 
             //note from the spec that "strings that are a sequence of characters ending with the character '\0'"
             String sendString = "hello world\0";
@@ -37,35 +71,26 @@ public class Part1{
             ByteBuffer headerBuffer =head.byteBuffer;
             //Padding header with string with padding to 4 byte align --> total is 24 byte
             ByteBuffer packetBuffer =ByteBuffer.allocate(headerBuffer.capacity()+sendStringBytes.length+(4-sendStringBytes.length%4));
-
             /*
              you can remove this, I just used it for debugging
              */
-            System.out.println(byteArrayToHex(headerBuffer.array()));
+           // System.out.println(byteArrayToHex(headerBuffer.array()));
 
             packetBuffer.put(headerBuffer.array());
             packetBuffer.put(sendStringBytes);
-
             System.out.println("send out packet : "+Arrays.toString(packetBuffer.array()));
 
             DatagramPacket request = new DatagramPacket(packetBuffer.array(), packetBuffer.array().length, host, port);
-            // Not sure why you want to use this
             byte[] buffer2 = new byte[packetBuffer.array().length];
             response = new DatagramPacket(buffer2, buffer2.length);
-
 
             /*
              you don't need to establish a connection for udp, you just send
              */
-//            socket.connect(host, port);
-//            System.out.println("IsBound: " + socket.isBound());
-//            System.out.println("isConnected : " + socket.isConnected());
-
-
-            socket.send(request); //send request
+            udpSocket.send(request); //send request
             System.out.println("...packet sent successfully....");
 
-            socket.receive(response); //await reply
+            udpSocket.receive(response); //await reply
             System.out.println("Received packet data : " +
                     Arrays.toString(response.getData()));
 
@@ -82,18 +107,14 @@ public class Part1{
             //System.out.println(quote);
 
         } catch (IOException ex){
-            System.err.println("Could not connect to attu2.cs.washington.edu");
             System.err.println(ex);
-        } finally {
-            if(socket != null){
-                socket.close(); //close disconnect
-            }
+            closeUDPSocket();
         }
 
         return response;
-
     }
-    public static void stageB(String hostname,DatagramPacket response){
+
+    public static DatagramPacket stageB(DatagramPacket response){
         /*
         Extract para from stage A response
          */
@@ -109,136 +130,213 @@ public class Part1{
         //Some socket parameter
         int packet_id =0;
         int TIMEOUT_MILLIS =500;
-        boolean success = true;
-        DatagramSocket socket = null;
         while(packet_id!=num){
             //Create payloadbuffer with size of len + padding
             ByteBuffer payloadBuffer =ByteBuffer.allocate(4+len+(4-len%4)); //padding + len+4
             payloadBuffer.putInt(packet_id); //first 4 bytes of payload is packet_id
-            System.out.println("size of payload "+payloadBuffer.array().length);
+     //       System.out.println("size of payload "+payloadBuffer.array().length);
 
             //Create packetBuffer using both header and payload
             ByteBuffer packetBuffer =ByteBuffer.allocate(headerBuffer.capacity()+payloadBuffer.capacity());
  //           System.out.println(byteArrayToHex(headerBuffer.array()));
             packetBuffer.put(headerBuffer.array());
             packetBuffer.put(payloadBuffer.array());
-
-            System.out.println("size of packet "+packetBuffer.array().length); //should be payload size + 12
+//            System.out.println("size of packet "+packetBuffer.array().length); //should be payload size + 12
 
             boolean receivedResponse = false;
             int tries = 0;
-            int MAX_TRIES = 10;
            do {
                 try {
-                    socket = new DatagramSocket();  //open a socket
-                    //connect to the server
-                    if(tries == 0)
-                        socket.setSoTimeout(1000);
-                    else
-                        socket.setSoTimeout(TIMEOUT_MILLIS); // set retransmission rate- 0.5 seconds
+                    // should already be connected to server
 
-                    InetAddress host = InetAddress.getByName(hostname);
+                    if(tries != 0)
+                        udpSocket.setSoTimeout(TIMEOUT_MILLIS); // set retransmission rate- 0.5 seconds
+
+                    InetAddress host = InetAddress.getByName(HOSTNAME);
                     DatagramPacket request = new DatagramPacket(packetBuffer.array(), packetBuffer.array().length, host, udp_port);
 
                     byte[] buffer2 = new byte[packetBuffer.array().length];
                     response = new DatagramPacket(buffer2, buffer2.length);
 
-                    socket.send(request); //send request
+                    udpSocket.send(request); //send request
                     System.out.println("send out packet : "+Arrays.toString(packetBuffer.array()));
                     System.out.println("...packet " + packet_id + " sent successfully....");
 
-                    socket.receive(response); //await reply
+                    udpSocket.receive(response); //await reply
 
+                    //Verify server acknowledged packet by replying with identifier
                     receivedResponse =true;
                     System.out.println("Received packet " + packet_id + " data : " +
-                            Arrays.toString(response.getData()));
+                    //        Arrays.toString(response.getData()));
+                              ByteBuffer.wrap(response.getData()).getInt(12));
                     System.out.println();
 
                 } catch (IOException ex) {
                        tries ++;
-                        System.err.println("Could not get response");
-                        System.err.println(ex);
-                } finally {
-                    if (socket != null)
-                        socket.close();
+                       System.err.println("Could not get response, trying again");
+                       System.err.println(ex);
                 }
-           }while((!receivedResponse)&&(tries<MAX_TRIES));
 
-
-            if(!receivedResponse){
-                System.out.println("No response -- giving up");
-                success = false;
-            }
+           }while((!receivedResponse));
 
             packet_id+=1;
         }
 
-        if(success) {
-            //TODO receive last packet containing two integers
+        //Once all acks received
+        try{
+            byte[] buffer2 = new byte[head.byteBuffer.array().length+8]; // 12 + 4 + 4
+            response = new DatagramPacket(buffer2, buffer2.length);
+            assert udpSocket != null;
+            udpSocket.receive(response); //await reply
 
- //           int tcp_port = ByteBuffer.wrap(response.getData()).getInt(12);
- //           int secretB = ByteBuffer.wrap(response.getData()).getInt(16);
- //           System.out.println("port " + tcp_port + " secretB " + secretB);
-            System.out.println("stage B complete");
-        }else {
-            System.err.println("STAGE B FAILED");
+            System.out.println("Received final packet " +
+                        Arrays.toString(response.getData()));
+
+        }catch (IOException e){
+            e.printStackTrace();
+        } finally {
+            closeUDPSocket();
         }
+
+        int tcp_port = ByteBuffer.wrap(response.getData()).getInt(12);
+        int secretB = ByteBuffer.wrap(response.getData()).getInt(16);
+        System.out.println("tcp port " + tcp_port + " secretB " + secretB);
+        System.out.println("stage B complete");
+
+        return response;
     }
 
-    public static void stageC(String hostname,DatagramPacket response) throws IOException {
+    public static ByteBuffer stageC(DatagramPacket response) throws IOException {
          /*
         Extract para from stage B response
          */
-        //TODO fix these
         int tcp_port = ByteBuffer.wrap(response.getData()).getInt(12);
-        int secretB = ByteBuffer.wrap(response.getData()).getInt(16);
+   //     int secretB = ByteBuffer.wrap(response.getData()).getInt(16);
+
+        initializeTCPSocket(tcp_port);
+
+        //Just connect to the server then wait to receive data
+        //after stage b, the server just opens up TCP socket and listens
+        // for an incoming client connection,
+        // as soon as it accepts that connection it will send part C
+        // Reference: https://us.edstem.org/courses/403/discussion/30687
+
+        //    System.out.println("Connected? " + socket.isConnected());
+        ByteBuffer resp = null;
+        try {
+            //Read data from the server
+            in = tcpSocket.getInputStream();
+            byte[] inBuf = in.readAllBytes();
+            System.out.println("Response: " + Arrays.toString(inBuf));
+            resp = ByteBuffer.wrap(inBuf);
+
+            int num2 = resp.getInt(12);
+            int len2 = resp.getInt(16);
+            int secretC = resp.getInt(20);
+            char c = resp.getChar(24);
+
+            System.out.println("num2: " + num2 + " len2: " + len2 +
+                    " secret C: " + secretC + " c: " + c);
+            System.out.println("stage C complete");
+
+
+        } catch (IOException e){
+            System.err.println(e);
+            closeTCPSocket();
+        }
+        //don't close connection
+
+        return resp;
+    }
+
+    public static void stageD(ByteBuffer partC) throws IOException {
+     /*
+        Extract para from stage C response
+     */
+        int num2 = partC.getInt(12);
+        int len2 = partC.getInt(16);
+        int secretC = partC.getInt(20);
+        char c = partC.getChar(24);
 
         //Create Header
-     //   header head =new header(len+4,secretB,1,68);
-     //   ByteBuffer headerBuffer = head.byteBuffer;
+        //Client sends num2 payloads each of length len2
+        // num2 separate payloads each with a separate header on the client side
+        // but it will show up as a stream of concatenated packets on the server side.
+        //https://us.edstem.org/courses/403/discussion/24141
 
+        int packetNum =1;
+        while(packetNum <= num2){
+            header head =new header(len2,secretC,1,68);//TODO not sure which header
+           // header head =new header(len2+(4-len2%4),secretC,1,68);
+            ByteBuffer headerBuffer = head.byteBuffer;
 
-        Socket socket = null;
+            //create Payload
+            ByteBuffer payloadBuffer =ByteBuffer.allocate(len2+(4-len2%4)); //padding -- 4 byte aligned
+            //each payload containing all bytes set to the character c
+            while(payloadBuffer.hasRemaining()) {
+                payloadBuffer.putChar(c);
+            }
+            System.out.println("size of payload: "+payloadBuffer.array().length);
+
+            //Create packetBuffer using both header and payload
+            ByteBuffer packetBuffer =ByteBuffer.allocate(headerBuffer.capacity()+payloadBuffer.capacity());
+            packetBuffer.put(headerBuffer.array());
+            packetBuffer.put(payloadBuffer.array());
+            System.out.println("send out packet " + packetNum + ": " +Arrays.toString(packetBuffer.array()));
+
+           // System.out.println("Connected? " + tcpSocket.isConnected());
+
+            /*
+            //Send data to the server
+            out = tcpSocket.getOutputStream();
+            out.write(packetBuffer.array());
+
+             */
+            PrintWriter pr =new PrintWriter(tcpSocket.getOutputStream());
+            //https://docs.oracle.com/javase/8/docs/api/java/io/PrintWriter.html
+            pr.println(Arrays.toString(packetBuffer.array()));
+            pr.flush();
+            System.out.println("sent to server");
+
+            packetNum+=1;
+        }
+
+        ByteBuffer resp = null;
         try {
-            socket = new Socket(hostname, tcp_port);
-            socket.setSoTimeout(1000);
-
-            System.out.println("Connected");
-
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 
             //Read data from the server
-            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String line;
-            while((line = reader.readLine()) != null)
-                System.out.println(line);
+            //Server responds with one integer payload
+            in = tcpSocket.getInputStream();
+            byte[] inBuf = in.readAllBytes();
+            System.out.println("Response: " + Arrays.toString(inBuf));
+            resp = ByteBuffer.wrap(inBuf);
 
+            int secretD = resp.getInt(12);
+            System.out.println("secret D: " + secretD );
+
+
+            System.out.println("stage D complete");
 
 
         } catch (IOException e){
             System.err.println(e);
         } finally {
-            if(socket != null){
-                socket.close();
-            }
+            closeTCPSocket();
         }
 
 
     }
-//    public void stageD(){
-//
-//    }
 
 
     public static void main(String[] args)throws IOException{
-
-        String hostname = "attu2.cs.washington.edu";
         int udp_port = 12235;
-        DatagramPacket response=stageA(hostname,udp_port);
+        DatagramPacket responseA=stageA(udp_port);
         System.out.println("----------------------------------------");
-        stageB(hostname,response);
+        DatagramPacket responseB=stageB(responseA);
         System.out.println("----------------------------------------");
-
+        ByteBuffer responseC = stageC(responseB);
+        System.out.println("----------------------------------------");
+        stageD(responseC);
     }
 
 
