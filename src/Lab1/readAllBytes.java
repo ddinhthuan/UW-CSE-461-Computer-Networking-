@@ -1,8 +1,11 @@
 package Lab1;
 
+import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 public class readAllBytes {
     public byte[] readAllBytes_fn(InputStream inputStream) throws IOException {
@@ -14,8 +17,12 @@ public class readAllBytes {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
-            while ((readLen = inputStream.read(buf, 0, bufLen)) != -1)
+            while ((readLen = inputStream.read(buf, 0, bufLen)) != -1) {
                 outputStream.write(buf, 0, readLen);
+                System.out.println("read len "+readLen);
+            }
+
+            System.out.println("output stream "+ Arrays.toString( outputStream.toByteArray())+" read len "+readLen);
 
             return outputStream.toByteArray();
         } catch (IOException e) {

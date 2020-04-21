@@ -15,8 +15,8 @@ public class Part1{
     private static DatagramSocket udpSocket = null;
     private static Socket tcpSocket = null;
     private static InputStream in = null;
-    private static OutputStream out = null;
 
+    private static InputStream bufferdInputStream =null;
     private static final String HOSTNAME = "attu2.cs.washington.edu";
    // private static final String HOSTNAME = "localhost";
 
@@ -51,8 +51,8 @@ public class Part1{
     }
 
     private static void closeTCPSocket() throws IOException {
-       in.close();
-       out.close();
+       //bufferdInputStream.close();
+
        tcpSocket.close();
     }
 
@@ -106,7 +106,7 @@ public class Part1{
             int secretA = ByteBuffer.wrap(response.getData()).getInt(24);
             System.out.println("num: " + num + " len: " + len + " port " + udp_port + " secretA " + secretA);
             System.out.println("stage A complete");
-            System.out.println("byte array to string"+byteArrayToHex(response.getData()));
+//            System.out.println("byte array to string"+byteArrayToHex(response.getData()));
            // String quote = new String(buffer, 0, response.getLength());
             //System.out.println(quote);
 
@@ -163,15 +163,15 @@ public class Part1{
                     response = new DatagramPacket(buffer2, buffer2.length);
 
                     udpSocket.send(request); //send request
-                    System.out.println("send out packet : "+Arrays.toString(packetBuffer.array()));
-                    System.out.println("...packet " + packet_id + " sent successfully....");
+//                    System.out.println("send out packet : "+Arrays.toString(packetBuffer.array()));
+//                    System.out.println("...packet " + packet_id + " sent successfully....");
 
                     udpSocket.receive(response); //await reply
 
                     //Verify server acknowledged packet by replying with identifier
                     receivedResponse =true;
-                    System.out.println("Received packet " + packet_id + " data : " +
-                            Arrays.toString(response.getData()));
+//                    System.out.println("Received packet " + packet_id + " data : " +
+//                            Arrays.toString(response.getData()));
                     //          ByteBuffer.wrap(response.getData()).getInt(12)); //TODO uncomment
                     System.out.println("payloadLen: " + ByteBuffer.wrap(response.getData()).getInt(0) + " psecret: " +
                             ByteBuffer.wrap(response.getData()).getInt(4) + " step: " + ByteBuffer.wrap(response.getData()).getShort(8) +
@@ -183,8 +183,8 @@ public class Part1{
 
                 } catch (IOException ex) {
                        tries ++;
-                       System.err.println("Could not get response, trying again");
-                       System.err.println(ex);
+//                       System.err.println("Could not get response, trying again");
+//                       System.err.println(ex);
                 }
 
            }while((!receivedResponse));
@@ -233,16 +233,30 @@ public class Part1{
 
         //    System.out.println("Connected? " + socket.isConnected());
         ByteBuffer resp = null;
+        byte[] real =null;
         try {
             //Read data from the server
             in = tcpSocket.getInputStream();
 //            byte[] inBuf = in.readAllBytes();
-            readAllBytes rb =new readAllBytes();
-            byte[] inBuf = rb.readAllBytes_fn(in);
-            System.out.println("Response: " + Arrays.toString(inBuf));
-            System.out.println("byte array to string"+byteArrayToHex(inBuf));
-            resp = ByteBuffer.wrap(inBuf);
+//            readAllBytes rb =new readAllBytes();
+//            byte[] inBuf = rb.readAllBytes_fn(in);
+            bufferdInputStream = new BufferedInputStream(tcpSocket.getInputStream());
+            bufferdInputStream.mark(0);
+            //read your bufferdInputStream
+            bufferdInputStream.reset();
+            //read it again
+            //dis=new DataInputStream(tcpSocket.getInputStream());
+            byte[] data = new byte[1000];
 
+            int count = bufferdInputStream.read(data);
+            real =new byte[count+1];
+            for(int i=1;i<=count;i++)
+                real[i]=data[i];
+            byte[] inBuf =real;
+//            System.out.println("Response: " + Arrays.toString(inBuf));
+//            System.out.println("byte array to string"+byteArrayToHex(inBuf));
+            resp = ByteBuffer.wrap(inBuf);
+            bufferdInputStream.reset();
             int num2 = resp.getInt(12);
             int len2 = resp.getInt(16);
             int secretC = resp.getInt(20);
@@ -278,60 +292,54 @@ public class Part1{
         //https://us.edstem.org/courses/403/discussion/24141
 
         int packetNum =1;
+        header head =new header(len2,secretC,1,68);
         while(packetNum <= num2){
-            header head =new header(len2,secretC,1,68);
             ByteBuffer headerBuffer = head.byteBuffer;
 
             //create Payload
             //each payload containing all bytes set to the character c
             ByteBuffer initialPayload = ByteBuffer.allocate(len2);
-            for(int i=0; i<len2-1; i++) {
+
+            for(int i=0; i<len2-1; ++i) {
+                //System.out.println(i+" "+initialPayload.capacity());
                 initialPayload.putChar(i, c);
             }
-//            while(initialPayload.hasRemaining()) {
-//                initialPayload.putChar(c);
-//            }
- //           System.out.println("first packet: " +Arrays.toString(initialPayload.array()));
 
             ByteBuffer payloadBuffer =ByteBuffer.allocate(len2+(4-len2%4)); //padding -- 4 byte aligned -- padding should be 0s
             payloadBuffer.put(initialPayload.array());
-            System.out.println("size of payload: "+payloadBuffer.array().length);
-
+//
             //Create packetBuffer using both header and payload
             ByteBuffer packetBuffer =ByteBuffer.allocate(headerBuffer.capacity()+payloadBuffer.capacity());
             packetBuffer.put(headerBuffer.array());
             packetBuffer.put(payloadBuffer.array());
-            System.out.println("send out packet " + packetNum + ": " +Arrays.toString(packetBuffer.array()));
-//            System.out.println("byte array to string"+byteArrayToHex(packetBuffer.array()));
-           // System.out.println("Connected? " + tcpSocket.isConnected());
+//
+            DataOutputStream dout=new DataOutputStream(tcpSocket.getOutputStream());
 
-
-            //Send data to the server
-            out = tcpSocket.getOutputStream();
-            //out.write(packetBuffer.array());
-
-
-            PrintWriter pr =new PrintWriter(out);
-            //https://docs.oracle.com/javase/8/docs/api/java/io/PrintWriter.html
-            pr.println(Arrays.toString(packetBuffer.array()));
-            pr.flush();
-//            System.out.println("sent to server");
+            dout.write(packetBuffer.array(), 0, packetBuffer.array().length);
+            dout.flush();
 
             packetNum+=1;
         }
 
         ByteBuffer resp = null;
+        byte[] real = null;
         try {
+            byte[] data = new byte[1000];
 
+            int count =bufferdInputStream.read(data);
+            real =new byte[count+1];
+            for(int i=1;i<=count;i++)
+                real[i]=data[i];
+            bufferdInputStream.reset();
+
+            // tcpSocket.close();
+            System.out.println("ok +count "+count+" byte "+Arrays.toString(real));
             //Read data from the server
             //Server responds with one integer payload
             in = tcpSocket.getInputStream();
-//            byte[] inBuf = in.readAllBytes();
-            readAllBytes rb =new readAllBytes();
-            byte[] inBuf = rb.readAllBytes_fn(in);
-            System.out.println("Response: " + Arrays.toString(inBuf));
-            resp = ByteBuffer.wrap(inBuf);
-
+            resp = ByteBuffer.wrap(real);
+            System.out.println("tcp socket avaiable " +tcpSocket.isConnected());
+            System.out.println(" avaliable "+in.available()+" read" +in.toString());
             int secretD = resp.getInt(12);
             System.out.println("secret D: " + secretD );
 
@@ -368,6 +376,9 @@ public class Part1{
             sb.append(String.format("%02x", b) + " ");
         return sb.toString();
     }
+
+//
+
 
 }
 
