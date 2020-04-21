@@ -89,7 +89,7 @@ public class multiThreadServer {
         int udp_port = rand.nextInt(1000)+1024;//can't generate port below 1024: permission denied
         int serverPsecretA = rand.nextInt(1000);
         ByteBuffer returnPacket = ByteBuffer.allocate(28);
-        header head =new header(16,clientPsecret,2,studentID); //TODO check this step number
+        header head =new header(16,clientPsecret,2,studentID);
         ByteBuffer headerBuffer =head.byteBuffer;
         returnPacket.put(headerBuffer.array());
         returnPacket.putInt(num);
@@ -104,7 +104,7 @@ public class multiThreadServer {
             DatagramSocket ds = initializeUDPSocket(udp_port,3000);
             System.out.println("port after re intialized :"+ds.getPort());
 
-            Thread thread =new ClientHandler(ds,serverPsecretA);
+            Thread thread =new ClientHandler(ds,serverPsecretA, num, len);
             thread.start();
             System.out.println("Assigning new thread for this client");
         }catch (IOException e){

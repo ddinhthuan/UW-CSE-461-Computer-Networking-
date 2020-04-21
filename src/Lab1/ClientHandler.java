@@ -22,12 +22,18 @@ public class ClientHandler extends Thread{
     private static InputStream in =null;
     private static OutputStream out =null;
 
+    private static int stageB_packetNum = 0;
+    private static int stageB_numPackets;
+    private static int stageB_packetLen;
 
-    public ClientHandler(DatagramSocket udpSocket,int psecretA) {
+
+    public ClientHandler(DatagramSocket udpSocket,int psecretA, int num, int len) {
 
         this.udpSocket =udpSocket;
         this.psecretA  =psecretA;
 
+        stageB_numPackets = num;
+        stageB_packetLen = len;
 
     }
     @Override
@@ -56,7 +62,7 @@ public class ClientHandler extends Thread{
                     break;
                 }
                 if(clientPsecret==psecretA ) {
-                    stageB(receivedBuf);
+                    stageB(receivedPacket);
                 }else if(clientPsecret==psecretB ){
                     stageC(psecretB);
                 }else if(clientPsecret==psecretC){
@@ -75,22 +81,67 @@ public class ClientHandler extends Thread{
 
     }
 
-    private void stageB(ByteBuffer receivedBuf){
+    private void stageB(DatagramPacket receivedPacket){
+        ByteBuffer receivedBuf =ByteBuffer.wrap(receivedPacket.getData());
+        //header
         int payload_len=receivedBuf.getInt(0);
         int clientPsecret=receivedBuf.getInt(4);
         short step=receivedBuf.getShort(8);
         short studentID=receivedBuf.getShort(10);
 
-        int packet_num = 0; //TODO increment
+        //payload
+        int packet_id=receivedBuf.getInt(12);
+        // rest of payload is 0s
+
+        assert(payload_len == stageB_packetLen + 4);
+        assert(payload_len == receivedBuf.array().length - 12); // subtract 12 for header //TODO is this correct?
+
+        //TODO check if they arrive in order ?
+
         //For each packet the server receives, send pack ACK packet
         ByteBuffer ackPacket = ByteBuffer.allocate(payload_len + 12);
-        header head =new header(4,clientPsecret,1,studentID); // only send back int as payload
+        header head =new header(4,clientPsecret,2,studentID); // only send back int as payload
         ByteBuffer headerBuffer =head.byteBuffer;
         ackPacket.put(headerBuffer.array());
-        ackPacket.putInt(packet_num);
-     //   DatagramPacket UDPPacket =new DatagramPacket(ackPacket.array(),ackPacket.array().length,response.getAddress(),response.getPort());
+        ackPacket.putInt(packet_id);
+        stageB_packetNum++;
 
 
+        //For each received data packet, server randomly decides whether to ack that packet
+        int success = (int)Math.round(Math.random());
+        if(success == 0){
+            //close the socket
+            closeUDPSocket(); //TODO change this??
+        }
+
+        DatagramPacket UDPPacket =new DatagramPacket(ackPacket.array(),ackPacket.array().length,receivedPacket.getAddress(),receivedPacket.getPort());
+        try {
+            udpSocket.send(UDPPacket);
+        } catch (IOException e){
+            System.err.println("Failed to send");
+        }
+
+
+        //once server received all packets
+        if(packet_id == stageB_packetNum){
+            assert(packet_id == stageB_numPackets -1); // verify from stage A the client sent the correct # packets
+
+            ByteBuffer resp = ByteBuffer.allocate(12+4+4);
+            head = new header(8,clientPsecret,2,studentID);
+            Random rand = new Random();
+            int tcp_port = rand.nextInt(1000)+1024;
+            int secretB = rand.nextInt(1000);
+            resp.put(head.byteBuffer.array());
+            resp.putInt(tcp_port);
+            resp.putInt(secretB);
+            DatagramPacket respPacket =new DatagramPacket(resp.array(),resp.array().length,receivedPacket.getAddress(),receivedPacket.getPort());
+            try {
+                udpSocket.send(respPacket);
+            } catch (IOException e){
+                System.err.println("Failed to send");
+            }
+
+        }
 
     }
     private void stageC(int clientPsecret){
