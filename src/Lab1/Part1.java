@@ -17,8 +17,8 @@ public class Part1{
     private static InputStream in = null;
     private static OutputStream out = null;
 
-    //private static final String HOSTNAME = "attu2.cs.washington.edu";
-    private static final String HOSTNAME = "localhost";
+    private static final String HOSTNAME = "attu2.cs.washington.edu";
+   // private static final String HOSTNAME = "localhost";
 
     private static final int TIMEOUT = 1000;
 
@@ -171,10 +171,14 @@ public class Part1{
                     //Verify server acknowledged packet by replying with identifier
                     receivedResponse =true;
                     System.out.println("Received packet " + packet_id + " data : " +
-                    //        Arrays.toString(response.getData()));
-                              ByteBuffer.wrap(response.getData()).getInt(12));
+                            Arrays.toString(response.getData()));
+                    //          ByteBuffer.wrap(response.getData()).getInt(12)); //TODO uncomment
+                    System.out.println("payloadLen: " + ByteBuffer.wrap(response.getData()).getInt(0) + " psecret: " +
+                            ByteBuffer.wrap(response.getData()).getInt(4) + " step: " + ByteBuffer.wrap(response.getData()).getShort(8) +
+                            " studentID: " + ByteBuffer.wrap(response.getData()).getShort(10) + " packetNum: " + ByteBuffer.wrap(response.getData()).getInt(12));
 
-                    System.out.println("byte array to string"+byteArrayToHex(response.getData()));
+
+//                    System.out.println("byte array to string"+byteArrayToHex(response.getData()));
                     System.out.println();
 
                 } catch (IOException ex) {
@@ -275,16 +279,22 @@ public class Part1{
 
         int packetNum =1;
         while(packetNum <= num2){
-            header head =new header(len2,secretC,1,68);//TODO not sure which header
-           // header head =new header(len2+(4-len2%4),secretC,1,68);
+            header head =new header(len2,secretC,1,68);
             ByteBuffer headerBuffer = head.byteBuffer;
 
             //create Payload
-            ByteBuffer payloadBuffer =ByteBuffer.allocate(len2+(4-len2%4)); //padding -- 4 byte aligned
             //each payload containing all bytes set to the character c
-            while(payloadBuffer.hasRemaining()) {
-                payloadBuffer.putChar(c);
+            ByteBuffer initialPayload = ByteBuffer.allocate(len2);
+            for(int i=0; i<len2-1; i++) {
+                initialPayload.putChar(i, c);
             }
+//            while(initialPayload.hasRemaining()) {
+//                initialPayload.putChar(c);
+//            }
+ //           System.out.println("first packet: " +Arrays.toString(initialPayload.array()));
+
+            ByteBuffer payloadBuffer =ByteBuffer.allocate(len2+(4-len2%4)); //padding -- 4 byte aligned -- padding should be 0s
+            payloadBuffer.put(initialPayload.array());
             System.out.println("size of payload: "+payloadBuffer.array().length);
 
             //Create packetBuffer using both header and payload
@@ -292,20 +302,20 @@ public class Part1{
             packetBuffer.put(headerBuffer.array());
             packetBuffer.put(payloadBuffer.array());
             System.out.println("send out packet " + packetNum + ": " +Arrays.toString(packetBuffer.array()));
-            System.out.println("byte array to string"+byteArrayToHex(packetBuffer.array()));
+//            System.out.println("byte array to string"+byteArrayToHex(packetBuffer.array()));
            // System.out.println("Connected? " + tcpSocket.isConnected());
 
-            /*
+
             //Send data to the server
             out = tcpSocket.getOutputStream();
-            out.write(packetBuffer.array());
+            //out.write(packetBuffer.array());
 
-             */
-            PrintWriter pr =new PrintWriter(tcpSocket.getOutputStream());
+
+            PrintWriter pr =new PrintWriter(out);
             //https://docs.oracle.com/javase/8/docs/api/java/io/PrintWriter.html
             pr.println(Arrays.toString(packetBuffer.array()));
             pr.flush();
-            System.out.println("sent to server");
+//            System.out.println("sent to server");
 
             packetNum+=1;
         }
@@ -341,14 +351,14 @@ public class Part1{
 
     public static void main(String[] args)throws IOException{
         int udp_port = 12235;
-        udp_port =2425;
+     //   udp_port =2425;
         DatagramPacket responseA=stageA(udp_port);
         System.out.println("----------------------------------------");
         DatagramPacket responseB=stageB(responseA);
         System.out.println("----------------------------------------");
-//        ByteBuffer responseC = stageC(responseB);
-//        System.out.println("----------------------------------------");
-//        stageD(responseC);
+        ByteBuffer responseC = stageC(responseB);
+        System.out.println("----------------------------------------");
+        stageD(responseC);
     }
 
 

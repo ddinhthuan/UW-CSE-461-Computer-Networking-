@@ -89,7 +89,7 @@ public class multiThreadServer {
         int udp_port = rand.nextInt(1000)+1024;//can't generate port below 1024: permission denied
         int serverPsecretA = rand.nextInt(1000);
         ByteBuffer returnPacket = ByteBuffer.allocate(28);
-        header head =new header(16,clientPsecret,2,studentID);
+        header head =new header(16,clientPsecret,2,studentID); //TODO check this step number
         ByteBuffer headerBuffer =head.byteBuffer;
         returnPacket.put(headerBuffer.array());
         returnPacket.putInt(num);

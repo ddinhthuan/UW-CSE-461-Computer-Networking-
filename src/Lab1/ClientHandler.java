@@ -56,7 +56,7 @@ public class ClientHandler extends Thread{
                     break;
                 }
                 if(clientPsecret==psecretA ) {
-                    stageB();
+                    stageB(receivedBuf);
                 }else if(clientPsecret==psecretB ){
                     stageC(psecretB);
                 }else if(clientPsecret==psecretC){
@@ -75,7 +75,22 @@ public class ClientHandler extends Thread{
 
     }
 
-    private void stageB(){
+    private void stageB(ByteBuffer receivedBuf){
+        int payload_len=receivedBuf.getInt(0);
+        int clientPsecret=receivedBuf.getInt(4);
+        short step=receivedBuf.getShort(8);
+        short studentID=receivedBuf.getShort(10);
+
+        int packet_num = 0; //TODO increment
+        //For each packet the server receives, send pack ACK packet
+        ByteBuffer ackPacket = ByteBuffer.allocate(payload_len + 12);
+        header head =new header(4,clientPsecret,1,studentID); // only send back int as payload
+        ByteBuffer headerBuffer =head.byteBuffer;
+        ackPacket.put(headerBuffer.array());
+        ackPacket.putInt(packet_num);
+     //   DatagramPacket UDPPacket =new DatagramPacket(ackPacket.array(),ackPacket.array().length,response.getAddress(),response.getPort());
+
+
 
     }
     private void stageC(int clientPsecret){

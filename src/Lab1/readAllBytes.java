@@ -21,13 +21,14 @@ public class readAllBytes {
         } catch (IOException e) {
             exception = e;
             throw e;
-        } finally {
-            if (exception == null) inputStream.close();
-            else try {
-                inputStream.close();
-            } catch (IOException e) {
-                exception.addSuppressed(e);
-            }
         }
+//        finally {
+//            if (exception == null) inputStream.close();
+//            else try {
+//                inputStream.close();
+//            } catch (IOException e) {
+//                exception.addSuppressed(e);
+//            }
+//        }
     }
 }
