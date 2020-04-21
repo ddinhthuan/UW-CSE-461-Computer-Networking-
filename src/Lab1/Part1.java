@@ -15,8 +15,8 @@ public class Part1{
     private static DatagramSocket udpSocket = null;
     private static Socket tcpSocket = null;
     private static InputStream in = null;
-
     private static InputStream bufferdInputStream =null;
+
     private static final String HOSTNAME = "attu2.cs.washington.edu";
    // private static final String HOSTNAME = "localhost";
 
@@ -51,9 +51,9 @@ public class Part1{
     }
 
     private static void closeTCPSocket() throws IOException {
-       //bufferdInputStream.close();
-
-       tcpSocket.close();
+      tcpSocket.close();
+       bufferdInputStream.close();
+       in.close();
     }
 
 
@@ -81,7 +81,7 @@ public class Part1{
             packetBuffer.put(headerBuffer.array());
             packetBuffer.put(sendStringBytes);
             System.out.println("send out packet : "+Arrays.toString(packetBuffer.array()));
-            System.out.println("byte to hext: "+byteArrayToHex(packetBuffer.array()));
+//            System.out.println("byte to hext: "+byteArrayToHex(packetBuffer.array()));
 
             DatagramPacket request = new DatagramPacket(packetBuffer.array(), packetBuffer.array().length, host, port);
             byte[] buffer2 = new byte[packetBuffer.array().length];
@@ -172,14 +172,14 @@ public class Part1{
                     receivedResponse =true;
 //                    System.out.println("Received packet " + packet_id + " data : " +
 //                            Arrays.toString(response.getData()));
-                    //          ByteBuffer.wrap(response.getData()).getInt(12)); //TODO uncomment
+                    //          ByteBuffer.wrap(response.getData()).getInt(12));
                     System.out.println("payloadLen: " + ByteBuffer.wrap(response.getData()).getInt(0) + " psecret: " +
                             ByteBuffer.wrap(response.getData()).getInt(4) + " step: " + ByteBuffer.wrap(response.getData()).getShort(8) +
                             " studentID: " + ByteBuffer.wrap(response.getData()).getShort(10) + " packetNum: " + ByteBuffer.wrap(response.getData()).getInt(12));
 
 
 //                    System.out.println("byte array to string"+byteArrayToHex(response.getData()));
-                    System.out.println();
+//                    System.out.println();
 
                 } catch (IOException ex) {
                        tries ++;
@@ -192,6 +192,7 @@ public class Part1{
             packet_id+=1;
         }
 
+        System.out.println();
         //Once all acks received
         try{
             byte[] buffer2 = new byte[head.byteBuffer.array().length+8]; // 12 + 4 + 4
@@ -237,26 +238,23 @@ public class Part1{
         try {
             //Read data from the server
             in = tcpSocket.getInputStream();
-//            byte[] inBuf = in.readAllBytes();
-//            readAllBytes rb =new readAllBytes();
-//            byte[] inBuf = rb.readAllBytes_fn(in);
-            bufferdInputStream = new BufferedInputStream(tcpSocket.getInputStream());
+            bufferdInputStream = new BufferedInputStream(in);
             bufferdInputStream.mark(0);
             //read your bufferdInputStream
             bufferdInputStream.reset();
             //read it again
-            //dis=new DataInputStream(tcpSocket.getInputStream());
+
             byte[] data = new byte[1000];
 
             int count = bufferdInputStream.read(data);
             real =new byte[count+1];
-            for(int i=1;i<=count;i++)
-                real[i]=data[i];
+            if (count >= 0) System.arraycopy(data, 1, real, 1, count);
             byte[] inBuf =real;
-//            System.out.println("Response: " + Arrays.toString(inBuf));
+           System.out.println("Response: " + Arrays.toString(inBuf));
 //            System.out.println("byte array to string"+byteArrayToHex(inBuf));
             resp = ByteBuffer.wrap(inBuf);
             bufferdInputStream.reset();
+
             int num2 = resp.getInt(12);
             int len2 = resp.getInt(16);
             int secretC = resp.getInt(20);
@@ -276,7 +274,7 @@ public class Part1{
         return resp;
     }
 
-    public static void stageD(ByteBuffer partC) throws IOException {
+    public static ByteBuffer stageD(ByteBuffer partC) throws IOException {
      /*
         Extract para from stage C response
      */
@@ -299,15 +297,13 @@ public class Part1{
             //create Payload
             //each payload containing all bytes set to the character c
             ByteBuffer initialPayload = ByteBuffer.allocate(len2);
-
             for(int i=0; i<len2-1; ++i) {
-                //System.out.println(i+" "+initialPayload.capacity());
                 initialPayload.putChar(i, c);
             }
 
             ByteBuffer payloadBuffer =ByteBuffer.allocate(len2+(4-len2%4)); //padding -- 4 byte aligned -- padding should be 0s
             payloadBuffer.put(initialPayload.array());
-//
+
             //Create packetBuffer using both header and payload
             ByteBuffer packetBuffer =ByteBuffer.allocate(headerBuffer.capacity()+payloadBuffer.capacity());
             packetBuffer.put(headerBuffer.array());
@@ -328,22 +324,18 @@ public class Part1{
 
             int count =bufferdInputStream.read(data);
             real =new byte[count+1];
-            for(int i=1;i<=count;i++)
-                real[i]=data[i];
+            if (count >= 0) System.arraycopy(data, 1, real, 1, count);
             bufferdInputStream.reset();
 
-            // tcpSocket.close();
-            System.out.println("ok +count "+count+" byte "+Arrays.toString(real));
+
+            System.out.println("Response: "+Arrays.toString(real));
             //Read data from the server
             //Server responds with one integer payload
             in = tcpSocket.getInputStream();
             resp = ByteBuffer.wrap(real);
-            System.out.println("tcp socket avaiable " +tcpSocket.isConnected());
-            System.out.println(" avaliable "+in.available()+" read" +in.toString());
+
             int secretD = resp.getInt(12);
             System.out.println("secret D: " + secretD );
-
-
             System.out.println("stage D complete");
 
 
@@ -353,7 +345,7 @@ public class Part1{
             closeTCPSocket();
         }
 
-
+        return resp;
     }
 
 
@@ -366,7 +358,13 @@ public class Part1{
         System.out.println("----------------------------------------");
         ByteBuffer responseC = stageC(responseB);
         System.out.println("----------------------------------------");
-        stageD(responseC);
+        ByteBuffer responseD = stageD(responseC);
+        System.out.println("----------------------------------------");
+        System.out.println("Part 1 Secrets: ");
+        System.out.println("Stage a: " + ByteBuffer.wrap(responseA.getData()).getInt(24));
+        System.out.println("Stage b: " + ByteBuffer.wrap(responseB.getData()).getInt(16));
+        System.out.println("Stage c: " + ByteBuffer.wrap(responseC.array()).getInt(20));
+        System.out.println("Stage d: " + ByteBuffer.wrap(responseD.array()).getInt(12));
     }
 
 
