@@ -1,4 +1,4 @@
-package Lab1;
+package Lab1.Part2;
 
 import java.io.IOException;
 

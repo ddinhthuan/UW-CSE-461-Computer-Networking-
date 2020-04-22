@@ -1,8 +1,10 @@
-package Lab1;
+package Lab1.Part2;
 
 
 //import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 //import sun.security.x509.IPAddressName;
+
+import Lab1.header;
 
 import java.io.*;
 import java.net.*;
@@ -262,6 +264,7 @@ public class ClientHandler extends Thread{
             }
         }
         System.out.println("Exepected? " + stageC_packetLen * stageC_numPackets);
+
         System.out.println("Packet len: " + stageC_packetLen);
         System.out.println("Last byte: " + receivedPacket.array()[12+stageC_packetLen]);
 

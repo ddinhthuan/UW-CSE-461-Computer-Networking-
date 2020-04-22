@@ -1,4 +1,6 @@
-package Lab1;
+package Lab1.Part2;
+
+import Lab1.header;
 
 import java.io.*;
 import java.nio.ByteBuffer;

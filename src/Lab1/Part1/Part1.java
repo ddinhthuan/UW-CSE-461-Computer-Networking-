@@ -1,8 +1,10 @@
 /*
  add a different package name
  */
-package Lab1;
+package Lab1.Part1;
 //package part1;
+
+import Lab1.header;
 
 import java.net.*;
 import java.io.*;
@@ -17,8 +19,8 @@ public class Part1{
     private static InputStream in = null;
     private static InputStream bufferdInputStream =null;
 
-//    private static final String HOSTNAME = "attu2.cs.washington.edu";
-    private static final String HOSTNAME = "localhost";
+    private static final String HOSTNAME = "attu2.cs.washington.edu";
+ //   private static final String HOSTNAME = "localhost";
 
     private static final int TIMEOUT = 1000;
 
@@ -353,7 +355,7 @@ public class Part1{
 
     public static void main(String[] args)throws IOException{
         int udp_port = 12235;
-        udp_port =2425;
+  ///      udp_port =2425;
         DatagramPacket responseA=stageA(udp_port);
         System.out.println("----------------------------------------");
         DatagramPacket responseB=stageB(responseA);

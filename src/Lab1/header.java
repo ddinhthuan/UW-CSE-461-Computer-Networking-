@@ -10,7 +10,7 @@ import java.nio.*;
 // on its header?
 
 public class header{
-    ByteBuffer byteBuffer=ByteBuffer.allocate(12);
+    public ByteBuffer byteBuffer=ByteBuffer.allocate(12);
     public header(int payload_len,int psecret,int step, int studentID){
         byteBuffer.putInt(payload_len);
         byteBuffer.putInt(psecret);
