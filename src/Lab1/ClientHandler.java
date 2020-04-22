@@ -14,6 +14,9 @@ public class ClientHandler extends Thread{
     //copy from lab1
     private  DatagramSocket udpSocket = null;
     private  ServerSocket tcpSocket = null;
+    private Socket clientSocket = null;
+
+    private static OutputStream bufferedOutputStream =null;
 
     //    final  socket;
     int psecretA =0;
@@ -21,7 +24,7 @@ public class ClientHandler extends Thread{
     int psecretC =Integer.MAX_VALUE;
     private static int stageB_packetNum = 0;
     private static int stageB_numPackets;
-    private static int stageB_packetLen;
+  //  private static int stageB_packetLen;
 
     private static final int TIMEOUT = 1000;
     private static final String HOSTNAME = "localhost";
@@ -95,7 +98,7 @@ public class ClientHandler extends Thread{
         int packet_id=receivedBuf.getInt(12);
         // rest of payload is 0s
 
-        assert(payload_len == stageB_packetLen + 4);
+  //      assert(payload_len == stageB_packetLen + 4);
         assert(payload_len == receivedBuf.array().length - 12); // subtract 12 for header //TODO is this correct?
 
         //TODO check if they arrive in order ?
@@ -120,7 +123,7 @@ public class ClientHandler extends Thread{
         DatagramPacket UDPPacket =new DatagramPacket(ackPacket.array(),ackPacket.array().length,receivedPacket.getAddress(),receivedPacket.getPort());
         System.out.println("Address "+receivedPacket.getAddress().toString()+" port "+receivedPacket.getPort());
         try {
-            System.out.println("stage B send back "+udpSocket.isBound()+" packat_id :"+stageB_packetNum);
+            System.out.println("stage B send back "+udpSocket.isBound()+" packet_id :"+stageB_packetNum);
             udpSocket.send(UDPPacket);
         } catch (IOException e){
             System.err.println("Failed to send");
@@ -142,49 +145,64 @@ public class ClientHandler extends Thread{
             DatagramPacket respPacket =new DatagramPacket(resp.array(),resp.array().length,receivedPacket.getAddress(),receivedPacket.getPort());
             try {
                 udpSocket.send(respPacket);
+                //after stage b, the server just opens up TCP socket and
                 stageC();
             } catch (IOException e){
                 System.err.println("Failed to send");
             }
 
         }else{
-            System.out.println("server does not recieve every packet_id");
+            System.out.println("server does not receive every packet_id");
         }
 
     }
 
-    //    private void stageB(){
-//
-//    }
     private void stageC(){
+        //listens for an incoming client connection, as soon as it accepts that connection it will send part C
+
         ByteBuffer resp=null;
 
+        System.out.println("Starting stage C");
 
         try{
+            //initializeTCPSocket(tcp_port);
+            tcpSocket = new ServerSocket(tcp_port);
+            System.out.println("Server started");
+            System.out.println("Waiting for a client...");
 
-            initializeTCPSocket(tcp_port);
-            Socket clientSocket = tcpSocket.accept();
+            clientSocket = tcpSocket.accept(); //blocks
+            System.out.println("client connected: " + clientSocket.isConnected());
 
+            //Send data
 
             Random rand = new Random();
-            int num2 = rand.nextInt(100);
-            int len2 = rand.nextInt(100);
-            psecretC = rand.nextInt(1000);
+            int num2 = rand.nextInt(20)+1;
+            int len2 = rand.nextInt(25)+1;
+            psecretC = rand.nextInt(1000)+1;
+          //  char c =(char)(rand.nextInt(95) + 32);
+           char c = (char)(rand.nextInt(255) + 'a');
+            System.out.println("Character c: " + c);
 
             //Assign to return val
-            ByteBuffer responsePacket =ByteBuffer.allocate(12+14);
-            header head =new header(len2,psecretB, 2,studentID);
+            ByteBuffer responsePacket =ByteBuffer.allocate(12+16); //28 bytes
+            header head =new header(13,psecretB, 2,studentID);
             responsePacket.put(head.byteBuffer.array());
             responsePacket.putInt(num2);
-
             responsePacket.putInt(len2);
             responsePacket.putInt(psecretC);
-            responsePacket.putChar('c');
-            PrintWriter pr =new PrintWriter(clientSocket.getOutputStream());
-            //https://docs.oracle.com/javase/8/docs/api/java/io/PrintWriter.html
-            pr.println(Arrays.toString(responsePacket.array()));
-            pr.flush();
+            responsePacket.putChar(c);
+            //padding should be 0s
+
+            System.out.println("num2: " + num2 + " len2: " + len2 +
+                    " secret C: " + psecretC + " c: " + c);
+
+            DataOutputStream dout=new DataOutputStream(clientSocket.getOutputStream());
+
+            dout.write(responsePacket.array(), 0, responsePacket.array().length);
+            dout.flush();
+
             System.out.println("sent to client with "+Arrays.toString(responsePacket.array()));
+            System.out.println("Sent " + responsePacket.array().length + " bytes to client");
         }catch (IOException e){
             System.err.println("connection failed");
         }

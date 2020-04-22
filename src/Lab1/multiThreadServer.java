@@ -56,8 +56,8 @@ public class multiThreadServer {
         }
 
         Random rand = new Random();
-        int num = rand.nextInt(1000);
-        int len = rand.nextInt(1000);
+        int num = rand.nextInt(25);
+        int len = rand.nextInt(50);
         int udp_port = rand.nextInt(1000)+1024;//can't generate port below 1024: permission denied
         int serverPsecretA = rand.nextInt(1000);
         ByteBuffer returnPacket = ByteBuffer.allocate(28);
@@ -74,7 +74,7 @@ public class multiThreadServer {
 
             udpSocket.send(UDPPacket);
             ds = initializeUDPSocket(udp_port,3000);
-            System.out.println("port after re intialized :"+ds.getLocalPort());
+            System.out.println("port after re-initialized :"+ds.getLocalPort());
 
             Thread thread =new ClientHandler(ds,serverPsecretA,num);
             thread.start();

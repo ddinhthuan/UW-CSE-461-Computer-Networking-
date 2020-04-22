@@ -17,8 +17,8 @@ public class Part1{
     private static InputStream in = null;
     private static InputStream bufferdInputStream =null;
 
-    private static final String HOSTNAME = "attu2.cs.washington.edu";
-   // private static final String HOSTNAME = "localhost";
+//    private static final String HOSTNAME = "attu2.cs.washington.edu";
+    private static final String HOSTNAME = "localhost";
 
     private static final int TIMEOUT = 1000;
 
@@ -183,7 +183,8 @@ public class Part1{
 
                 } catch (IOException ex) {
                        tries ++;
-//                       System.err.println("Could not get response, trying again");
+                      System.err.println("Could not get response, trying again");
+                      System.err.println("Sending on port: " + udp_port);
 //                       System.err.println(ex);
                 }
 
@@ -251,6 +252,7 @@ public class Part1{
             if (count >= 0) System.arraycopy(data, 1, real, 1, count);
             byte[] inBuf =real;
            System.out.println("Response: " + Arrays.toString(inBuf));
+           System.out.println("Read " + inBuf.length + " bytes from server");
 //            System.out.println("byte array to string"+byteArrayToHex(inBuf));
             resp = ByteBuffer.wrap(inBuf);
             bufferdInputStream.reset();
@@ -351,20 +353,20 @@ public class Part1{
 
     public static void main(String[] args)throws IOException{
         int udp_port = 12235;
-     //   udp_port =2425;
+        udp_port =2425;
         DatagramPacket responseA=stageA(udp_port);
         System.out.println("----------------------------------------");
         DatagramPacket responseB=stageB(responseA);
         System.out.println("----------------------------------------");
         ByteBuffer responseC = stageC(responseB);
         System.out.println("----------------------------------------");
-        ByteBuffer responseD = stageD(responseC);
+   //     ByteBuffer responseD = stageD(responseC);
         System.out.println("----------------------------------------");
         System.out.println("Part 1 Secrets: ");
         System.out.println("Stage a: " + ByteBuffer.wrap(responseA.getData()).getInt(24));
         System.out.println("Stage b: " + ByteBuffer.wrap(responseB.getData()).getInt(16));
         System.out.println("Stage c: " + ByteBuffer.wrap(responseC.array()).getInt(20));
-        System.out.println("Stage d: " + ByteBuffer.wrap(responseD.array()).getInt(12));
+     //   System.out.println("Stage d: " + ByteBuffer.wrap(responseD.array()).getInt(12));
     }
 
 
