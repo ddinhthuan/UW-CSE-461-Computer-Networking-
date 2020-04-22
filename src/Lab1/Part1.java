@@ -252,7 +252,7 @@ public class Part1{
             if (count >= 0) System.arraycopy(data, 1, real, 1, count);
             byte[] inBuf =real;
            System.out.println("Response: " + Arrays.toString(inBuf));
-           System.out.println("Read " + inBuf.length + " bytes from server");
+//           System.out.println("Read " + inBuf.length + " bytes from server");
 //            System.out.println("byte array to string"+byteArrayToHex(inBuf));
             resp = ByteBuffer.wrap(inBuf);
             bufferdInputStream.reset();
@@ -330,7 +330,7 @@ public class Part1{
             bufferdInputStream.reset();
 
 
-            System.out.println("Response: "+Arrays.toString(real));
+            System.out.println("Response from server: "+Arrays.toString(real));
             //Read data from the server
             //Server responds with one integer payload
             in = tcpSocket.getInputStream();
@@ -360,13 +360,13 @@ public class Part1{
         System.out.println("----------------------------------------");
         ByteBuffer responseC = stageC(responseB);
         System.out.println("----------------------------------------");
-   //     ByteBuffer responseD = stageD(responseC);
+        ByteBuffer responseD = stageD(responseC);
         System.out.println("----------------------------------------");
         System.out.println("Part 1 Secrets: ");
         System.out.println("Stage a: " + ByteBuffer.wrap(responseA.getData()).getInt(24));
         System.out.println("Stage b: " + ByteBuffer.wrap(responseB.getData()).getInt(16));
         System.out.println("Stage c: " + ByteBuffer.wrap(responseC.array()).getInt(20));
-     //   System.out.println("Stage d: " + ByteBuffer.wrap(responseD.array()).getInt(12));
+        System.out.println("Stage d: " + ByteBuffer.wrap(responseD.array()).getInt(12));
     }
 
 

@@ -17,6 +17,7 @@ public class ClientHandler extends Thread{
     private Socket clientSocket = null;
 
     private static OutputStream bufferedOutputStream =null;
+    private static InputStream bufferdInputStream =null;
 
     //    final  socket;
     int psecretA =0;
@@ -24,12 +25,18 @@ public class ClientHandler extends Thread{
     int psecretC =Integer.MAX_VALUE;
     private static int stageB_packetNum = 0;
     private static int stageB_numPackets;
+    private static char stageC_char;
+
+    private static int stageC_numPackets;
+    private static int stageC_packetLen;
   //  private static int stageB_packetLen;
 
     private static final int TIMEOUT = 1000;
     private static final String HOSTNAME = "localhost";
     private static InputStream in =null;
     private static OutputStream out =null;
+
+    private boolean sentTCPPacket = false;
 
     int tcp_port =0;
     short studentID=0;
@@ -39,51 +46,79 @@ public class ClientHandler extends Thread{
 
         this.udpSocket =udpSocket;
         this.psecretA  =psecretA;
-        this.stageB_numPackets =num;
+        stageB_numPackets =num;
 
     }
+
     @Override
     public void run() {
         byte[] received=new byte[10000];//need to double check here
         DatagramPacket receivedPacket = null;
+
+        int clientPsecret;
         while (true) {
             try {
 
-                // Ask user what he wants
+                if (!sentTCPPacket) {
+                    // receive the answer from client
+                    receivedPacket = new DatagramPacket(received, received.length);// not sure how large I should assign here
 
-                // receive the answer from client
-                receivedPacket = new DatagramPacket(received, received.length);// not sure how large I should assign here
+                    udpSocket.receive(receivedPacket);
+                    System.out.println("is bound " + udpSocket.isBound());
+                    ByteBuffer receivedBuf = ByteBuffer.wrap(receivedPacket.getData());
+                    System.out.println(Arrays.toString(receivedBuf.array()));
+                    int payload_len = receivedBuf.getInt(0);
+                    clientPsecret = receivedBuf.getInt(4);
+                    short step = receivedBuf.getShort(8);
+                    short studentID = receivedBuf.getShort(10);
+                    if (step != 1) {
+                        if (udpSocket != null && udpSocket.isBound()) closeUDPSocket();
+                        if (tcpSocket != null && tcpSocket.isBound()) closeTCPSocket();
+                        System.out.println("break the connection because step !=1");
+                        break;
+                    }
 
-                udpSocket.receive(receivedPacket);
-                System.out.println("is bound "+udpSocket.isBound());
-                ByteBuffer receivedBuf =ByteBuffer.wrap(receivedPacket.getData());
-                System.out.println(Arrays.toString(receivedBuf.array()));
-                int payload_len=receivedBuf.getInt(0);
-                int clientPsecret=receivedBuf.getInt(4);
-                short step=receivedBuf.getShort(8);
-                short studentID=receivedBuf.getShort(10);
-                if(step!=1){
-                    if(udpSocket!=null&& udpSocket.isBound())closeUDPSocket();
-                    if(tcpSocket!=null&& tcpSocket.isBound())closeTCPSocket();
-                    System.out.println("break the connection because step !=1");
-                    break;
+                    if (clientPsecret == psecretA) {
+                        stageB(receivedPacket);
+                    }
+
+                } else { // expecting TCP packet
+                    System.out.println("Receiving client packet for part D");
+                    in = clientSocket.getInputStream();
+                    bufferdInputStream = new BufferedInputStream(in);
+                    bufferdInputStream.mark(0);
+                    //read your bufferdInputStream
+                    bufferdInputStream.reset();
+                    //read it again
+                    byte[] data = new byte[1000];
+                    int count = bufferdInputStream.read(data);
+
+                    byte[] real =new byte[count+1];
+                    if (count >= 0) System.arraycopy(data, 1, real, 1, count);
+                    byte[] inBuf =real;
+                    System.out.println("Response from client: " + Arrays.toString(inBuf));
+
+                    ByteBuffer resp = ByteBuffer.wrap(inBuf);
+                    bufferdInputStream.reset();
+
+                    int payload_len = resp.getInt(0);
+                    clientPsecret = resp.getInt(4);
+                    short step = resp.getShort(8);
+                    short studentID = resp.getShort(10);
+                    if (clientPsecret == psecretC) {
+                        stageD(resp);
+                    }
                 }
-
-                if(clientPsecret==psecretA ) {
-                    stageB(receivedPacket);
-                }else if(clientPsecret==psecretB ){
-                    stageC();
-                }else if(clientPsecret==psecretC){
-                    stageD();
-                }
-
-
-            } catch (IOException e) {
+            }catch (IOException e) {
 //                e.printStackTrace();
+            } finally{
+                try {
+                    closeTCPSocket();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
-
-
 
     }
     private void stageB(DatagramPacket receivedPacket){
@@ -116,8 +151,8 @@ public class ClientHandler extends Thread{
 //        int success = (int)Math.round(Math.random());
 //        if(success == 0){
 //            //close the socket
-//            closeUDPSocket(); //TODO change this??
-//            System.out.println("close udp socket");
+//            break; //TODO change this??
+//
 //        }
 
         DatagramPacket UDPPacket =new DatagramPacket(ackPacket.array(),ackPacket.array().length,receivedPacket.getAddress(),receivedPacket.getPort());
@@ -159,9 +194,6 @@ public class ClientHandler extends Thread{
 
     private void stageC(){
         //listens for an incoming client connection, as soon as it accepts that connection it will send part C
-
-        ByteBuffer resp=null;
-
         System.out.println("Starting stage C");
 
         try{
@@ -176,25 +208,25 @@ public class ClientHandler extends Thread{
             //Send data
 
             Random rand = new Random();
-            int num2 = rand.nextInt(20)+1;
-            int len2 = rand.nextInt(25)+1;
+            stageC_numPackets = rand.nextInt(20)+1;
+            stageC_packetLen = rand.nextInt(25)+1;
             psecretC = rand.nextInt(1000)+1;
           //  char c =(char)(rand.nextInt(95) + 32);
-           char c = (char)(rand.nextInt(255) + 'a');
-            System.out.println("Character c: " + c);
+            stageC_char = (char)(rand.nextInt(255) + 'a');
+            System.out.println("Character c: " + stageC_char);
 
             //Assign to return val
             ByteBuffer responsePacket =ByteBuffer.allocate(12+16); //28 bytes
             header head =new header(13,psecretB, 2,studentID);
             responsePacket.put(head.byteBuffer.array());
-            responsePacket.putInt(num2);
-            responsePacket.putInt(len2);
+            responsePacket.putInt(stageC_numPackets);
+            responsePacket.putInt(stageC_packetLen);
             responsePacket.putInt(psecretC);
-            responsePacket.putChar(c);
+            responsePacket.putChar(stageC_char);
             //padding should be 0s
 
-            System.out.println("num2: " + num2 + " len2: " + len2 +
-                    " secret C: " + psecretC + " c: " + c);
+            System.out.println("num2: " + stageC_numPackets + " len2: " + stageC_packetLen +
+                    " secret C: " + psecretC + " c: " + stageC_char);
 
             DataOutputStream dout=new DataOutputStream(clientSocket.getOutputStream());
 
@@ -203,13 +235,53 @@ public class ClientHandler extends Thread{
 
             System.out.println("sent to client with "+Arrays.toString(responsePacket.array()));
             System.out.println("Sent " + responsePacket.array().length + " bytes to client");
+            sentTCPPacket = true;
         }catch (IOException e){
             System.err.println("connection failed");
         }
 
-
     }
-    private void stageD(){
+
+    private void stageD(ByteBuffer receivedPacket) throws IOException {
+        System.out.println("Entered stage D branch");
+        System.out.println("Size of received packet: " + receivedPacket.array().length);
+        int payload_len = receivedPacket.getInt(0);
+       // clientPsecret = receivedPacket.getInt(4);
+        short step = receivedPacket.getShort(8);
+        short studentID = receivedPacket.getShort(10);
+
+        boolean correctMessage = true;
+
+        byte[] info = receivedPacket.array();
+        while(correctMessage) {
+            for (int i = 12; i < 12 + stageC_packetLen; i++) {
+                if (info[i] != Character.getNumericValue(stageC_char)) {
+                    correctMessage = false;
+                    break;
+                }
+            }
+        }
+        System.out.println("Exepected? " + stageC_packetLen * stageC_numPackets);
+        System.out.println("Packet len: " + stageC_packetLen);
+        System.out.println("Last byte: " + receivedPacket.array()[12+stageC_packetLen]);
+
+        if(correctMessage){
+            Random rand = new Random();
+            int psecretD = rand.nextInt(1000)+1;
+
+            ByteBuffer responsePacket =ByteBuffer.allocate(12+4); //28 bytes
+            header head =new header(4,psecretC, 2,studentID);
+            responsePacket.put(head.byteBuffer.array());
+            responsePacket.putInt(psecretD);
+
+            DataOutputStream dout=new DataOutputStream(clientSocket.getOutputStream());
+
+            dout.write(responsePacket.array(), 0, responsePacket.array().length);
+            dout.flush();
+
+            System.out.println("sent to client with "+Arrays.toString(responsePacket.array()));
+
+        }
 
     }
 
