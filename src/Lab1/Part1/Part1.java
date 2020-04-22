@@ -186,7 +186,7 @@ public class Part1{
                 } catch (IOException ex) {
                        tries ++;
                       System.err.println("Could not get response, trying again");
-                      System.err.println("Sending on port: " + udp_port);
+                    //  System.err.println("Sending on port: " + udp_port);
 //                       System.err.println(ex);
                 }
 
@@ -362,7 +362,7 @@ public class Part1{
         System.out.println("----------------------------------------");
         ByteBuffer responseC = stageC(responseB);
         System.out.println("----------------------------------------");
-        ByteBuffer responseD = stageD(responseC);
+       ByteBuffer responseD = stageD(responseC);
         System.out.println("----------------------------------------");
         System.out.println("Part 1 Secrets: ");
         System.out.println("Stage a: " + ByteBuffer.wrap(responseA.getData()).getInt(24));

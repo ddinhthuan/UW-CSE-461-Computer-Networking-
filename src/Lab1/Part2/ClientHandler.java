@@ -144,19 +144,23 @@ public class ClientHandler extends Thread{
         stageB_packetNum++;
 
 
-        //For each received data packet, server randomly decides whether to ack that packet
-//        int success = (int)Math.round(Math.random());
-//        if(success == 0){
-//            //close the socket
-//            break; //TODO change this??
-//
-//        }
-
         DatagramPacket UDPPacket =new DatagramPacket(ackPacket.array(),ackPacket.array().length,receivedPacket.getAddress(),receivedPacket.getPort());
         System.out.println("Address "+receivedPacket.getAddress().toString()+" port "+receivedPacket.getPort());
         try {
-            System.out.println("stage B send back "+udpSocket.isBound()+" packet_id :"+stageB_packetNum);
-            udpSocket.send(UDPPacket);
+
+            //For each received data packet, server randomly decides whether to ack that packet
+            int success = (int)Math.round(Math.random());
+            System.err.println("Success? " + success);
+            if(success == 0){
+                //close the socket
+                System.err.println("Randomly close");
+                udpSocket.disconnect(); //TODO change this??
+            }
+            //TODO fix
+//            else {
+                System.out.println("stage B send back " + udpSocket.isBound() + " packet_id :" + stageB_packetNum);
+                udpSocket.send(UDPPacket);
+//            }
         } catch (IOException e){
             System.err.println("Failed to send");
         }
