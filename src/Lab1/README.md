@@ -10,8 +10,3 @@ Stage d: 18
 
 Compile instructions:
 
-go inside the src folder and type 
-javac Lab1/Part1.java && javac Lab1/Part2.java
-Run with java Lab1.Part1 for part 1
-Run with java Lab1.Part2 for part 2
-
