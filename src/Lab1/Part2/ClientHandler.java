@@ -97,10 +97,9 @@ public class ClientHandler extends Thread{
 
                     byte[] real =new byte[count+1];
                     if (count >= 0) System.arraycopy(data, 1, real, 1, count);
-                    byte[] inBuf =real;
-                    System.out.println("Response from client: " + Arrays.toString(inBuf));
+                    System.out.println("Response from client: " + Arrays.toString(real));
 
-                    ByteBuffer resp = ByteBuffer.wrap(inBuf);
+                    ByteBuffer resp = ByteBuffer.wrap(real);
                     bufferdInputStream.reset();
 
                     int payload_len = resp.getInt(0);
@@ -110,16 +109,12 @@ public class ClientHandler extends Thread{
                     if (clientPsecret == psecretC) {
                         stageD(resp);
                     }
+                    break;
                 }
             }catch (IOException e) {
 //                e.printStackTrace();
-            } finally{
-                try {
-                    closeTCPSocket();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
+
         }
 
     }
@@ -252,8 +247,10 @@ public class ClientHandler extends Thread{
         short step = receivedPacket.getShort(8);
         short studentID = receivedPacket.getShort(10);
 
-        boolean correctMessage = true;
 
+        //TODO
+        boolean correctMessage = true;
+/*
         byte[] info = receivedPacket.array();
         while(correctMessage) {
             for (int i = 12; i < 12 + stageC_packetLen; i++) {
@@ -268,6 +265,10 @@ public class ClientHandler extends Thread{
         System.out.println("Packet len: " + stageC_packetLen);
         System.out.println("Last byte: " + receivedPacket.array()[12+stageC_packetLen]);
 
+
+
+ */
+        //Send last packet to client
         if(correctMessage){
             Random rand = new Random();
             int psecretD = rand.nextInt(1000)+1;
