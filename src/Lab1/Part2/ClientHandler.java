@@ -156,11 +156,11 @@ public class ClientHandler extends Thread{
                 System.err.println("Randomly close");
                 udpSocket.disconnect(); //TODO change this??
             }
-            //TODO fix
-//            else {
+            //TODO fix -- comment out else braces to run
+            else {
                 System.out.println("stage B send back " + udpSocket.isBound() + " packet_id :" + stageB_packetNum);
                 udpSocket.send(UDPPacket);
-//            }
+            }
         } catch (IOException e){
             System.err.println("Failed to send");
         }
