@@ -1,52 +1,24 @@
 package Lab1;
+
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.text.*;
 import java.util.*;
 import java.net.*;
+
 public class multiThreadServer {
     private static DatagramSocket udpSocket = null;
     private static ServerSocket tcpSocket = null;
     private static final int TIMEOUT = 1000;
     private static final String HOSTNAME = "localhost";
+    DatagramSocket ds=null;
     public multiThreadServer(int port)throws IOException {
-        ServerSocket serverSocket =new ServerSocket(port);//(12235 );
+      //  ServerSocket serverSocket =new ServerSocket(port);//(12235 );
         System.out.println("server start");
         udpSocket =initializeUDPSocket(port,TIMEOUT);
         byte[] buffer2 = new byte[256];
-
-        String text = null;
-        while(true) {
-            text = null;
-            int server_port = 2425;
-            byte[] message = new byte[1500];
-            DatagramPacket p = new DatagramPacket(message, message.length);
-            DatagramSocket s = null;
-            try {
-                s = new DatagramSocket(server_port);
-            } catch (SocketException e) {
-                e.printStackTrace();
-                System.out.println("Socket excep");
-            }
-            try {
-                s.receive(p);
-                System.out.println("get the data" + Arrays.toString((p.getData())));
-                ByteBuffer responseBuf =ByteBuffer.wrap(p.getData());
-                DatagramPacket send=null;
-
-                int payload_len=responseBuf.getInt(0);
-                int clientPsecret=responseBuf.getInt(4);
-                short step=responseBuf.getShort(8);
-                short studentID=responseBuf.getShort(10);
-                if(clientPsecret==0 && step==1) stageA(p);
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.out.println("IO EXcept");
-            }
-            text = new String(message, 0, p.getLength());
-            System.out.println("message = " + text);
-            s.close();
-        }
+        Listner listner = new Listner();
+        Thread thread = new Thread(listner);
+        thread.start();
 
     }
 
@@ -67,7 +39,7 @@ public class multiThreadServer {
     private void stageA(DatagramPacket response){
         System.out.println("start Stage A");
         ByteBuffer responseBuf =ByteBuffer.wrap(response.getData());
-        DatagramPacket send=null;
+   //     DatagramPacket send=null;
 
         int payload_len=responseBuf.getInt(0);
         int clientPsecret=responseBuf.getInt(4);
@@ -101,10 +73,10 @@ public class multiThreadServer {
         try{
 
             udpSocket.send(UDPPacket);
-            DatagramSocket ds = initializeUDPSocket(udp_port,3000);
-            System.out.println("port after re intialized :"+ds.getPort());
+            ds = initializeUDPSocket(udp_port,3000);
+            System.out.println("port after re intialized :"+ds.getLocalPort());
 
-            Thread thread =new ClientHandler(ds,serverPsecretA, num, len);
+            Thread thread =new ClientHandler(ds,serverPsecretA,num);
             thread.start();
             System.out.println("Assigning new thread for this client");
         }catch (IOException e){
@@ -117,5 +89,43 @@ public class multiThreadServer {
         udpSocket.close();
         System.out.println("close connection");
     }
+    class Listner implements Runnable {
+        @Override
+        public void run() {
+            String text = null;
+            while (true) {
+                text = null;
+                int server_port = 2425;
+                byte[] message = new byte[1500];
+                DatagramPacket p = new DatagramPacket(message, message.length);
+                DatagramSocket s = null;
+                try {
+                    s = new DatagramSocket(server_port);
+                } catch (SocketException e) {
+                    e.printStackTrace();
+                    System.out.println("Socket excep");
+                }
+                try {
+                    s.receive(p);
+                    System.out.println("get the data" + Arrays.toString((p.getData())));
+                    ByteBuffer responseBuf = ByteBuffer.wrap(p.getData());
+                    DatagramPacket send = null;
 
+                    int payload_len = responseBuf.getInt(0);
+                    int clientPsecret = responseBuf.getInt(4);
+                    short step = responseBuf.getShort(8);
+                    short studentID = responseBuf.getShort(10);
+
+                    if (clientPsecret == 0 && step == 1) stageA(p);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.out.println("IO EXcept");
+                }
+                text = new String(message, 0, p.getLength());
+                System.out.println("message = " + text);
+                s.close();
+            }
+
+        }
+    }
 }

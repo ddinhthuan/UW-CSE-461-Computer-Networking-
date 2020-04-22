@@ -1,6 +1,9 @@
 package Lab1;
 
 
+//import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
+//import sun.security.x509.IPAddressName;
+
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
@@ -9,31 +12,31 @@ import java.util.Date;
 import java.util.Random;
 public class ClientHandler extends Thread{
     //copy from lab1
-    private static DatagramSocket udpSocket = null;
-    private static ServerSocket tcpSocket = null;
+    private  DatagramSocket udpSocket = null;
+    private  ServerSocket tcpSocket = null;
 
-    private  int psecretA =0;
-    private  int psecretB =Integer.MAX_VALUE;
-    private  int psecretC =Integer.MAX_VALUE;
-    private int studentID;
-    private int tcp_port;
+    //    final  socket;
+    int psecretA =0;
+    int psecretB =Integer.MAX_VALUE;
+    int psecretC =Integer.MAX_VALUE;
+    private static int stageB_packetNum = 0;
+    private static int stageB_numPackets;
+    private static int stageB_packetLen;
+
     private static final int TIMEOUT = 1000;
     private static final String HOSTNAME = "localhost";
     private static InputStream in =null;
     private static OutputStream out =null;
 
-    private static int stageB_packetNum = 0;
-    private static int stageB_numPackets;
-    private static int stageB_packetLen;
+    int tcp_port =0;
+    short studentID=0;
 
 
-    public ClientHandler(DatagramSocket udpSocket,int psecretA, int num, int len) {
+    public ClientHandler(DatagramSocket udpSocket,int psecretA,int num) {
 
         this.udpSocket =udpSocket;
         this.psecretA  =psecretA;
-
-        stageB_numPackets = num;
-        stageB_packetLen = len;
+        this.stageB_numPackets =num;
 
     }
     @Override
@@ -49,45 +52,44 @@ public class ClientHandler extends Thread{
                 receivedPacket = new DatagramPacket(received, received.length);// not sure how large I should assign here
 
                 udpSocket.receive(receivedPacket);
+                System.out.println("is bound "+udpSocket.isBound());
                 ByteBuffer receivedBuf =ByteBuffer.wrap(receivedPacket.getData());
                 System.out.println(Arrays.toString(receivedBuf.array()));
                 int payload_len=receivedBuf.getInt(0);
                 int clientPsecret=receivedBuf.getInt(4);
                 short step=receivedBuf.getShort(8);
                 short studentID=receivedBuf.getShort(10);
-                //TODO Check 4 alginment
                 if(step!=1){
-                    if(udpSocket!=null&& udpSocket.isConnected())closeUDPSocket();
-                    if(tcpSocket!=null&& !tcpSocket.isClosed())closeTCPSocket();
+                    if(udpSocket!=null&& udpSocket.isBound())closeUDPSocket();
+                    if(tcpSocket!=null&& tcpSocket.isBound())closeTCPSocket();
+                    System.out.println("break the connection because step !=1");
                     break;
                 }
+
                 if(clientPsecret==psecretA ) {
                     stageB(receivedPacket);
                 }else if(clientPsecret==psecretB ){
-                    stageC(psecretB);
+                    stageC();
                 }else if(clientPsecret==psecretC){
                     stageD();
                 }
 
 
-
-
             } catch (IOException e) {
-                e.printStackTrace();
+//                e.printStackTrace();
             }
         }
 
 
 
     }
-
     private void stageB(DatagramPacket receivedPacket){
         ByteBuffer receivedBuf =ByteBuffer.wrap(receivedPacket.getData());
         //header
         int payload_len=receivedBuf.getInt(0);
         int clientPsecret=receivedBuf.getInt(4);
         short step=receivedBuf.getShort(8);
-        short studentID=receivedBuf.getShort(10);
+        studentID=receivedBuf.getShort(10);
 
         //payload
         int packet_id=receivedBuf.getInt(12);
@@ -108,14 +110,17 @@ public class ClientHandler extends Thread{
 
 
         //For each received data packet, server randomly decides whether to ack that packet
-        int success = (int)Math.round(Math.random());
-        if(success == 0){
-            //close the socket
-            closeUDPSocket(); //TODO change this??
-        }
+//        int success = (int)Math.round(Math.random());
+//        if(success == 0){
+//            //close the socket
+//            closeUDPSocket(); //TODO change this??
+//            System.out.println("close udp socket");
+//        }
 
         DatagramPacket UDPPacket =new DatagramPacket(ackPacket.array(),ackPacket.array().length,receivedPacket.getAddress(),receivedPacket.getPort());
+        System.out.println("Address "+receivedPacket.getAddress().toString()+" port "+receivedPacket.getPort());
         try {
+            System.out.println("stage B send back "+udpSocket.isBound()+" packat_id :"+stageB_packetNum);
             udpSocket.send(UDPPacket);
         } catch (IOException e){
             System.err.println("Failed to send");
@@ -123,28 +128,35 @@ public class ClientHandler extends Thread{
 
 
         //once server received all packets
-        if(packet_id == stageB_packetNum){
+        if(stageB_numPackets == stageB_packetNum){
             assert(packet_id == stageB_numPackets -1); // verify from stage A the client sent the correct # packets
 
             ByteBuffer resp = ByteBuffer.allocate(12+4+4);
             head = new header(8,clientPsecret,2,studentID);
             Random rand = new Random();
-            int tcp_port = rand.nextInt(1000)+1024;
-            int secretB = rand.nextInt(1000);
+            tcp_port = rand.nextInt(1000)+1024;
+            psecretB = rand.nextInt(1000);
             resp.put(head.byteBuffer.array());
             resp.putInt(tcp_port);
-            resp.putInt(secretB);
+            resp.putInt(psecretB);
             DatagramPacket respPacket =new DatagramPacket(resp.array(),resp.array().length,receivedPacket.getAddress(),receivedPacket.getPort());
             try {
                 udpSocket.send(respPacket);
+                stageC();
             } catch (IOException e){
                 System.err.println("Failed to send");
             }
 
+        }else{
+            System.out.println("server does not recieve every packet_id");
         }
 
     }
-    private void stageC(int clientPsecret){
+
+    //    private void stageB(){
+//
+//    }
+    private void stageC(){
         ByteBuffer resp=null;
 
 
@@ -161,7 +173,7 @@ public class ClientHandler extends Thread{
 
             //Assign to return val
             ByteBuffer responsePacket =ByteBuffer.allocate(12+14);
-            header head =new header(len2,clientPsecret, 2,studentID);
+            header head =new header(len2,psecretB, 2,studentID);
             responsePacket.put(head.byteBuffer.array());
             responsePacket.putInt(num2);
 
@@ -184,13 +196,15 @@ public class ClientHandler extends Thread{
     }
 
 
-    private static void closeUDPSocket() {
+    private  void closeUDPSocket() {
         udpSocket.close();
     }
 
-    private static void initializeTCPSocket(int tcp_port) throws IOException {
+    private  void initializeTCPSocket(int tcp_port) throws IOException {
         try {
-            tcpSocket = new ServerSocket(tcp_port);
+            tcpSocket = new ServerSocket();
+            //InetSocketAddress address = new InetSocketAddress(HOSTNAME, tcp_port);
+            //tcpSocket.connect(address, TIMEOUT);
 
         } catch (IOException e){
             System.err.println("Could not connect");
@@ -198,7 +212,7 @@ public class ClientHandler extends Thread{
         }
     }
 
-    private static void closeTCPSocket() throws IOException {
+    private  void closeTCPSocket() throws IOException {
         in.close();
         out.close();
         tcpSocket.close();
