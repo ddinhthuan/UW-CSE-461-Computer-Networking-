@@ -240,6 +240,10 @@ public class ClientHandler extends Thread{
     }
 
     private void stageD(ByteBuffer receivedPacket) throws IOException {
+        if(receivedPacket.capacity()!=(12+stageC_packetLen)*stageC_numPackets){
+            closeTCPSocket();
+            return ;
+        }
         System.out.println("Entered stage D branch");
         System.out.println("Size of received packet: " + receivedPacket.array().length);
         int payload_len = receivedPacket.getInt(0);
@@ -268,6 +272,26 @@ public class ClientHandler extends Thread{
 
 
  */
+        byte[] info = receivedPacket.array();
+        int n =1;
+        int i=12;
+        while(correctMessage && n<=stageC_numPackets) {
+            for (; i < (12 + stageC_packetLen)*n; i++) {
+                if (info[i] != Character.getNumericValue(stageC_char)) {
+                    correctMessage = false;
+                    break;
+                }
+            }
+            n+=1;
+            i+=12;//need to test about this
+        }
+        System.out.println("Exepected? " + stageC_packetLen * stageC_numPackets);
+
+        System.out.println("Packet len: " + stageC_packetLen);
+        System.out.println("Last byte: " + receivedPacket.array()[12+stageC_packetLen]);
+
+
+
         //Send last packet to client
         if(correctMessage){
             Random rand = new Random();
