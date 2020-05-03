@@ -22,6 +22,19 @@ class Firewall (object):
     connection.addListeners(self)
 
     #add switch rules here
+    self.flow_Entry(10,0x0800,1)
+    self.flow_Entry(9,0x0806,0)
+    self.flow_Entry(0,None,0)
+  
+  def flow_Entry(self,priority,dl_type,proto):
+    msg =of.ofp_flow_mod()
+    msg.priority=priority
+    if dl_type:
+      msg.match.dl_type=dl_type #match Ethernet type
+      if dl_type==0x0800: #0x0800 is IPv4
+        msg.match.nw_proto=proto  #proto =1 is ICMP
+      msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))
+    self.connection.send(msg)
 
   def _handle_PacketIn (self, event):
     """
