@@ -45,27 +45,151 @@ class Part3Controller (object):
     else:
       print ("UNKNOWN SWITCH")
       exit(1)
+  def flood(self):
+    fm = of.ofp_flow_mod()
+    fm.priority = 1 # a slightly higher priority than drop
+    fm.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD))
+    self.connection.send(fm)
+
+  def drop(self):
+    # drop other packets
+    fm_drop = of.ofp_flow_mod()
+    # ICMP
+    fm_drop.priority = 0 # a low priority
+    # flood all ports
+    self.connection.send(fm_drop)
+
 
   def s1_setup(self):
     #put switch 1 rules here
-    pass
+    self.flood()
+    self.drop()
 
   def s2_setup(self):
     #put switch 2 rules here
-    pass
+    self.flood()
+    self.drop()
 
   def s3_setup(self):
     #put switch 3 rules here
-    pass
+    self.flood()
+    self.drop()
 
   def cores21_setup(self):
-    #put core switch rules here
-    pass
+    """
+    # put core switch rules here
+    # black list
+    # block all ICMP traffic from untrusted host
+    icmp_block =of.ofp_flow_mod()
+    icmp_block.priority= 11
+    icmp_block.match.dl_type= 0x0800
+    icmp_block.proto = 1
+    icmp_block.match.nw_src=IPS["hnotrust"][0]
+    self.connection.send(icmp_block)
+    print(icmp_block)  
+    # block all ipv4 traffic from untrusted host
+    ipv4_block = of.ofp_flow_mod()
+    ipv4_block.priority = 10
+    ipv4_block.match.dl_type =0x800
+    ipv4_block.match.nw_src =IPS["hnotrust"][0]
+    ipv4_block.match.nw_dst =IPS["serv1"][0]
+    self.connection.send(ipv4_block)
+    print(ipv4_block)
+    """   
+    # block all ICMP traffic from untrusted host
+    self.Set_up_rule(11,0x800,1,"hnotrust",None,None)
+    
+    # block all ipv4 traffic from untrusted host
+    self.Set_up_rule(10,0x800,None,"hnotrust","serv1",None)
+     # actual routing
+    # host 10
+    
+    fm_route_port_1 = of.ofp_flow_mod()
+    fm_route_port_1.priority = 8
+    fm_route_port_1.match.dl_type = 0x0800 # IPv4
+    fm_route_port_1.match.nw_dst = IPS["h10"][0] # to host 1
+    fm_route_port_1.actions.append(of.ofp_action_output(port = 1)) # send it out through port 1
+    self.connection.send(fm_route_port_1)
+    print(fm_route_port_1)
+     
+    # host 20
+    fm_route_port_2 = of.ofp_flow_mod()
+    fm_route_port_2.priority = 8
+    fm_route_port_2.match.dl_type = 0x0800 # IPv4
+    fm_route_port_2.match.nw_dst = IPS["h20"][0] # to host 2
+    fm_route_port_2.actions.append(of.ofp_action_output(port = 2)) # send it out through port 1
+    self.connection.send(fm_route_port_2)
+    
+    # host 30
+    fm_route_port_3 = of.ofp_flow_mod()
+    fm_route_port_3.priority = 8
+    fm_route_port_3.match.dl_type = 0x0800 # IPv4
+    fm_route_port_3.match.nw_dst = IPS["h30"][0] # to host 3
+    fm_route_port_3.actions.append(of.ofp_action_output(port = 3)) # send it out through port 3
+    self.connection.send(fm_route_port_3)
 
+    # datacenter
+    fm_route_port_dc = of.ofp_flow_mod()
+    fm_route_port_dc.priority = 8
+    fm_route_port_dc.match.dl_type = 0x0800 # IPvdc
+    fm_route_port_dc.match.nw_dst = IPS["serv1"][0] # to host dc
+    fm_route_port_dc.actions.append(of.ofp_action_output(port = 4)) # send it out through port 4
+    self.connection.send(fm_route_port_dc)
+    
+    # out to the Internet
+    fm_route_port_5 = of.ofp_flow_mod()
+    fm_route_port_5.priority = 8
+    fm_route_port_5.match.dl_type = 0x0800 # IPv4
+    fm_route_port_5.actions.append(of.ofp_action_output(port = 5)) # send it out through port 5
+    self.connection.send(fm_route_port_5)
+
+   
+    """
+    # h10
+    self.Set_up_rule(8,0x800,None,"h10",None,1)
+    # h20
+    
+    self.Set_up_rule(8,0x800,None,"h20",None,2)
+    # h30
+    self.Set_up_rule(8,0x800,None,"h30",None,3)
+    # serv1    
+    self.Set_up_rule(8,0x800,None,"serv1",None,4)
+    
+    # out of Internet
+    self.Set_up_rule(8,0x800,None,None,None,5)
+    """
+    self.flood()
+    self.drop()
   def dcs31_setup(self):
     #put datacenter switch rules here
-    pass
+    self.flood()
+    self.drop()
 
+  
+  def Set_up_rule(self,priority,dl_type,proto,src,dst,port_num):
+     print("Set rule====",priority,dl_type,proto,src,dst,port_num)
+     
+     msg = of.ofp_flow_mod()
+     if priority!=None: 
+     	msg.priority = priority
+        print("Priority",priority)
+     if dl_type!=None: 
+	msg.match.dl_type = dl_type
+        print("dl_ty0e",dl_type)
+     if proto!=None:
+        msg.match.proto= proto
+        print("Proto",proto)
+     if src!=None: 
+	msg.match.nw_src = IPS[src][0]
+        print("nw_src",IPS[src][0])
+     if dst!=None:
+	msg.match.nw_dst = IPS[dst][0]
+        print("nw_dst",IPS[dst][0])
+     if port_num!=None: 
+	msg.actions.append(of.ofp_action_output(port =port_num))
+        print("action port",port_num)
+     self.connection.send(msg)
+     print(msg)
   #used in part 4 to handle individual ARP packets
   #not needed for part 3 (USE RULES!)
   #causes the switch to output packet_in on out_port
