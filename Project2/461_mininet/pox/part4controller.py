@@ -30,7 +30,7 @@ class Entry():
     self.mac = mac
     self.port = port
 
-class Part3Controller (object):
+class Part4Controller (object):
   """
   A Connection object for that switch is passed to the __init__ function.
   """
@@ -132,7 +132,7 @@ class Part3Controller (object):
     action = of.ofp_action_output(port = out_port)
     msg.actions.append(action)
     self.connection.send(msg)
-
+    print("send out packet")
   def _handle_PacketIn (self, event):
     """
     Packets not handled by the router rules will be
@@ -145,7 +145,7 @@ class Part3Controller (object):
       return
     packet_in = event.ofp # The actual ofp_packet_in message.
     dpid =self.connection.dpid
-
+    """
     if packet.type == packet.LLDP_TYPE or packet.type == packet.IPV6_TYPE:
       # Drop LLDP packets 
       # Drop IPv6 packets
@@ -155,9 +155,9 @@ class Part3Controller (object):
       msg.buffer_id = event.ofp.buffer_id
       msg.in_port = event.port
       self.connection.send(msg)
-
+    """
     
-    elif packet.type ==packet.ARP_TYPE:
+    if packet.type ==packet.ARP_TYPE:
         """
         packet.next.srcip is a source IP address 
         packet.src is its source MAC address.
@@ -171,6 +171,7 @@ class Part3Controller (object):
                 # store it in arpTable
                 self.arpTable[dpid][srcip]=Entry(packet.src,event.port) #IP map to mac and port
                 msg = of.ofp_flow_mod()
+     	        msg.priority = 8
                 msg.actions.append(of.ofp_action_dl_addr.set_dst(packet.src)) # dst mac 
                 msg.actions.append(of.ofp_action_nw_addr.set_dst(srcip)) #dst ip
                 msg.actions.append(of.ofp_action_output(port = event.port))
@@ -188,10 +189,12 @@ class Part3Controller (object):
             ether.src = dpid_to_mac(dpid)
             ether.set_payload(arp_reply)
             # send out arp reply
-            print(self.arpTable[dpid][srcip].mac,self.arpTable[dpid][srcip].port)
+            print("dpid ",dpid," mac ",dpid_to_mac(dpid),"srcip ",srcip," dstip ",dstip)
+            print("My mac",self.arpTable[dpid][srcip].mac,self.arpTable[dpid][srcip].port)
             self.resend_packet(ether.pack(),self.arpTable[dpid][srcip].port)
+            return
         elif packet.type ==packet.ARP_TYPE:
-            pass        
+            print("get arp reply My IP",dstip," from ",srcip) 
             
     #elif packet.type == packet.IP_TYPE:
         # Handle client's request
@@ -206,5 +209,5 @@ def launch ():
   """
   def start_switch (event):
     log.debug("Controlling %s" % (event.connection,))
-    Part3Controller(event.connection)
+    Part4Controller(event.connection)
   core.openflow.addListenerByName("ConnectionUp", start_switch)
