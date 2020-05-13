@@ -6,7 +6,7 @@
 from pox.core import core
 import pox.openflow.libopenflow_01 as of
 from pox.lib.addresses import IPAddr, IPAddr6, EthAddr
-
+from pox.lib.packet.arp import arp
 log = core.getLogger()
 
 #statically allocate a routing table for hosts
@@ -24,7 +24,7 @@ def dpid_to_mac (dpid):
 
 
 
-class Entry(Object):
+class Entry():
   def __init__ (self, port, mac):
     self.port = port
     self.mac = mac
@@ -39,8 +39,7 @@ class Part3Controller (object):
     # send it messages!
     self.connection = connection
     self.mac = dpid_to_mac(self.connection.dpid)
-    self.IPS=None
-    
+    self.arpTable ={} 
     # This binds our PacketIn event listener
     connection.addListeners(self)
     #use the dpid to figure out what switch is being created
@@ -94,49 +93,6 @@ class Part3Controller (object):
     self.Set_up_rule(10,0x800,None,"hnotrust","serv1",None)
      # actual routing
     # host 10
-    
-    fm_route_port_1 = of.ofp_flow_mod()
-    fm_route_port_1.priority = 8
-    fm_route_port_1.match.dl_type = 0x0800 # IPv4
-    fm_route_port_1.match.nw_dst = IPS["h10"][0] # to host 1
-    fm_route_port_1.actions.append(of.ofp_action_output(port = 1)) # send it out through port 1
-    self.connection.send(fm_route_port_1)
-    print(fm_route_port_1)
-     
-    # host 20
-    fm_route_port_2 = of.ofp_flow_mod()
-    fm_route_port_2.priority = 8
-    fm_route_port_2.match.dl_type = 0x0800 # IPv4
-    fm_route_port_2.match.nw_dst = IPS["h20"][0] # to host 2
-    fm_route_port_2.actions.append(of.ofp_action_output(port = 2)) # send it out through port 1
-    self.connection.send(fm_route_port_2)
-    
-    # host 30
-    fm_route_port_3 = of.ofp_flow_mod()
-    fm_route_port_3.priority = 8
-    fm_route_port_3.match.dl_type = 0x0800 # IPv4
-    fm_route_port_3.match.nw_dst = IPS["h30"][0] # to host 3
-    fm_route_port_3.actions.append(of.ofp_action_output(port = 3)) # send it out through port 3
-    self.connection.send(fm_route_port_3)
-
-    # datacenter
-    fm_route_port_dc = of.ofp_flow_mod()
-    fm_route_port_dc.priority = 8
-    fm_route_port_dc.match.dl_type = 0x0800 # IPvdc
-    fm_route_port_dc.match.nw_dst = IPS["serv1"][0] # to host dc
-    fm_route_port_dc.actions.append(of.ofp_action_output(port = 4)) # send it out through port 4
-    self.connection.send(fm_route_port_dc)
-    
-    # out to the Internet
-    fm_route_port_5 = of.ofp_flow_mod()
-    fm_route_port_5.priority = 8
-    fm_route_port_5.match.dl_type = 0x0800 # IPv4
-    fm_route_port_5.actions.append(of.ofp_action_output(port = 5)) # send it out through port 5
-    self.connection.send(fm_route_port_5)
-
-   
-    self.flood()
-    self.drop()
   def dcs31_setup(self):
     #put datacenter switch rules here
     self.flood()
@@ -213,8 +169,7 @@ class Part3Controller (object):
                 msg = of.ofp_packet_mod()
                 msg.actions.append(of.ofp_action_dl_addr.set_dst(packet.src)) # dst mac 
                 msg.actions.append(of.ofp_action_nw_addr.set_dst(packet.next.srcip)) #dst ip
-                msg.actions.append(of.ofp_action_ouput(port = event.port)
-            
+                msg.actions.append(of.ofp_action_ouput(port = event.port))
             #create arp based on self.Mac
             arp_reply = arp()
             arp_reply.hwsrc = dpid_to_mac(dpid) # switch mac
@@ -231,13 +186,12 @@ class Part3Controller (object):
             self.resend_packet(ether.pack(),self.arpTable[dpid][packet.next.src].port)
             
             
-    elif packet.type == packet.IP_TYPE:
-      # Handle client's request
+    #elif packet.type == packet.IP_TYPE:
+        # Handle client's request
 
-      # Only accept ARP request for load balancer
-      log.debug("Receive an IPv4 packet from %s" % packet.next.srcip)
-      self.handle_request(packet, event)
-    print ("Unhandled packet from " + str(self.connection.dpid) + ":" + packet.dump())
+        # Only accept ARP request for load balancer
+        # log.debug("Receive an IPv4 packet from %s" % packet.next.srcip)
+        print ("Unhandled packet from " + str(self.connection.dpid) + ":" + packet.dump())
 
 def launch ():
   """
