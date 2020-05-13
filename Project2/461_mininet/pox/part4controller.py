@@ -5,6 +5,7 @@
 
 from pox.core import core
 import pox.openflow.libopenflow_01 as of
+from pox.lib.packet.ethernet import ethernet
 from pox.lib.addresses import IPAddr, IPAddr6, EthAddr
 from pox.lib.packet.arp import arp
 log = core.getLogger()
@@ -25,9 +26,9 @@ def dpid_to_mac (dpid):
 
 
 class Entry():
-  def __init__ (self, port, mac):
-    self.port = port
+  def __init__ (self, mac,port):
     self.mac = mac
+    self.port = port
 
 class Part3Controller (object):
   """
@@ -161,21 +162,25 @@ class Part3Controller (object):
         packet.next.srcip is a source IP address 
         packet.src is its source MAC address.
         """
+        srcip = packet.payload.protosrc
+        dstip = packet.payload.protodst
         if packet.payload.opcode ==arp.REQUEST:
+            if dpid not in self.arpTable:
+                self.arpTable[dpid] = {}
             if packet.src not in self.arpTable[dpid]:
                 # store it in arpTable
-                self.arpTable[dpid] = {}
-                self.arpTable[dpid][packet.next.srcip]=Entry(packet.src,event.port) #IP map to mac and port
-                msg = of.ofp_packet_mod()
+                self.arpTable[dpid][srcip]=Entry(packet.src,event.port) #IP map to mac and port
+                msg = of.ofp_flow_mod()
                 msg.actions.append(of.ofp_action_dl_addr.set_dst(packet.src)) # dst mac 
-                msg.actions.append(of.ofp_action_nw_addr.set_dst(packet.next.srcip)) #dst ip
-                msg.actions.append(of.ofp_action_ouput(port = event.port))
+                msg.actions.append(of.ofp_action_nw_addr.set_dst(srcip)) #dst ip
+                msg.actions.append(of.ofp_action_output(port = event.port))
             #create arp based on self.Mac
             arp_reply = arp()
             arp_reply.hwsrc = dpid_to_mac(dpid) # switch mac
             arp_reply.hwdst = packet.src        # host mac
             arp_reply.opcode = arp.REPLY        
-            arp_reply.protosrc = packet.find("ipv4").dstip
+            arp_reply.protodst = srcip
+            arp_reply.protosrc = dstip
             #ethernet
             ether = ethernet()
             ether.type = ethernet.ARP_TYPE
@@ -183,8 +188,10 @@ class Part3Controller (object):
             ether.src = dpid_to_mac(dpid)
             ether.set_payload(arp_reply)
             # send out arp reply
-            self.resend_packet(ether.pack(),self.arpTable[dpid][packet.next.src].port)
-            
+            print(self.arpTable[dpid][srcip].mac,self.arpTable[dpid][srcip].port)
+            self.resend_packet(ether.pack(),self.arpTable[dpid][srcip].port)
+        elif packet.type ==packet.ARP_TYPE:
+            pass        
             
     #elif packet.type == packet.IP_TYPE:
         # Handle client's request
