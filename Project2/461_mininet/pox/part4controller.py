@@ -122,7 +122,6 @@ class Part4Controller (object):
 	msg.actions.append(of.ofp_action_output(port =port_num))
         print("action port",port_num)
      self.connection.send(msg)
-     print(msg)
   #used in part 4 to handle individual ARP packets
   #not needed for part 3 (USE RULES!)
   #causes the switch to output packet_in on out_port
@@ -167,20 +166,22 @@ class Part4Controller (object):
         #scrip = packet.next.srcip
         #dstip = packet.next.dstip
         if packet.payload.opcode ==arp.REQUEST:
+            print("dpid ",dpid)
             if dpid not in self.arpTable:
                 self.arpTable[dpid] = {}
             if packet.src not in self.arpTable[dpid]:
                 # store it in arpTable
                 
                 self.arpTable[dpid][srcip]=Entry(packet.src,event.port) #IP map to mac and port
-                print(self.arpTable)
                 msg = of.ofp_flow_mod()
      	        msg.priority = 8
+                msg.match.dl_type =0x0800
                 msg.match.nw_dst = srcip 
                 msg.actions.append(of.ofp_action_dl_addr.set_dst(packet.src)) # dst mac 
                 msg.actions.append(of.ofp_action_dl_addr.set_src(dpid_to_mac(dpid))) # dst mac 
                 #msg.actions.append(of.ofp_action_nw_addr.set_dst(srcip)) #dst ip
                 msg.actions.append(of.ofp_action_output(port = event.port))
+                self.connection.send(msg)
             #create arp based on self.Mac
             arp_reply = arp()
             arp_reply.hwsrc = dpid_to_mac(dpid) # switch mac
