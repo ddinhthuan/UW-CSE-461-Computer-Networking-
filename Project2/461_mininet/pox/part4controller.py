@@ -162,18 +162,24 @@ class Part4Controller (object):
         packet.next.srcip is a source IP address 
         packet.src is its source MAC address.
         """
-        srcip = packet.payload.protosrc
-        dstip = packet.payload.protodst
+        srcip = packet.payload.protosrc #use next maybe
+        dstip = packet.payload.protodst #use next maybe
+        #scrip = packet.next.srcip
+        #dstip = packet.next.dstip
         if packet.payload.opcode ==arp.REQUEST:
             if dpid not in self.arpTable:
                 self.arpTable[dpid] = {}
             if packet.src not in self.arpTable[dpid]:
                 # store it in arpTable
+                
                 self.arpTable[dpid][srcip]=Entry(packet.src,event.port) #IP map to mac and port
+                print(self.arpTable)
                 msg = of.ofp_flow_mod()
      	        msg.priority = 8
+                msg.match.nw_dst = srcip 
                 msg.actions.append(of.ofp_action_dl_addr.set_dst(packet.src)) # dst mac 
-                msg.actions.append(of.ofp_action_nw_addr.set_dst(srcip)) #dst ip
+                msg.actions.append(of.ofp_action_dl_addr.set_src(dpid_to_mac(dpid))) # dst mac 
+                #msg.actions.append(of.ofp_action_nw_addr.set_dst(srcip)) #dst ip
                 msg.actions.append(of.ofp_action_output(port = event.port))
             #create arp based on self.Mac
             arp_reply = arp()
@@ -181,7 +187,7 @@ class Part4Controller (object):
             arp_reply.hwdst = packet.src        # host mac
             arp_reply.opcode = arp.REPLY        
             arp_reply.protodst = srcip
-            arp_reply.protosrc = dstip
+            arp_reply.protosrc = dstip#GatewayIPaddr
             #ethernet
             ether = ethernet()
             ether.type = ethernet.ARP_TYPE
