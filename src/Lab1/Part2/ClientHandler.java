@@ -97,10 +97,9 @@ public class ClientHandler extends Thread{
 
                     byte[] real =new byte[count+1];
                     if (count >= 0) System.arraycopy(data, 1, real, 1, count);
-                    byte[] inBuf =real;
-                    System.out.println("Response from client: " + Arrays.toString(inBuf));
+                    System.out.println("Response from client: " + Arrays.toString(real));
 
-                    ByteBuffer resp = ByteBuffer.wrap(inBuf);
+                    ByteBuffer resp = ByteBuffer.wrap(real);
                     bufferdInputStream.reset();
 
                     int payload_len = resp.getInt(0);
@@ -110,16 +109,12 @@ public class ClientHandler extends Thread{
                     if (clientPsecret == psecretC) {
                         stageD(resp);
                     }
+                    break;
                 }
             }catch (IOException e) {
 //                e.printStackTrace();
-            } finally{
-                try {
-                    closeTCPSocket();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
+
         }
 
     }
@@ -149,19 +144,23 @@ public class ClientHandler extends Thread{
         stageB_packetNum++;
 
 
-        //For each received data packet, server randomly decides whether to ack that packet
-//        int success = (int)Math.round(Math.random());
-//        if(success == 0){
-//            //close the socket
-//            break; //TODO change this??
-//
-//        }
-
         DatagramPacket UDPPacket =new DatagramPacket(ackPacket.array(),ackPacket.array().length,receivedPacket.getAddress(),receivedPacket.getPort());
         System.out.println("Address "+receivedPacket.getAddress().toString()+" port "+receivedPacket.getPort());
         try {
-            System.out.println("stage B send back "+udpSocket.isBound()+" packet_id :"+stageB_packetNum);
-            udpSocket.send(UDPPacket);
+
+            //For each received data packet, server randomly decides whether to ack that packet
+            int success = (int)Math.round(Math.random());
+            System.err.println("Success? " + success);
+            if(success == 0){
+                //close the socket
+                System.err.println("Randomly close");
+                udpSocket.disconnect(); //TODO change this??
+            }
+            //TODO fix -- comment out else braces to run
+            else {
+                System.out.println("stage B send back " + udpSocket.isBound() + " packet_id :" + stageB_packetNum);
+                udpSocket.send(UDPPacket);
+            }
         } catch (IOException e){
             System.err.println("Failed to send");
         }
@@ -245,6 +244,10 @@ public class ClientHandler extends Thread{
     }
 
     private void stageD(ByteBuffer receivedPacket) throws IOException {
+        if(receivedPacket.capacity()!=(12+stageC_packetLen)*stageC_numPackets){
+            closeTCPSocket();
+            return ;
+        }
         System.out.println("Entered stage D branch");
         System.out.println("Size of received packet: " + receivedPacket.array().length);
         int payload_len = receivedPacket.getInt(0);
@@ -252,8 +255,10 @@ public class ClientHandler extends Thread{
         short step = receivedPacket.getShort(8);
         short studentID = receivedPacket.getShort(10);
 
-        boolean correctMessage = true;
 
+        //TODO
+        boolean correctMessage = true;
+/*
         byte[] info = receivedPacket.array();
         while(correctMessage) {
             for (int i = 12; i < 12 + stageC_packetLen; i++) {
@@ -268,6 +273,30 @@ public class ClientHandler extends Thread{
         System.out.println("Packet len: " + stageC_packetLen);
         System.out.println("Last byte: " + receivedPacket.array()[12+stageC_packetLen]);
 
+
+
+ */
+        byte[] info = receivedPacket.array();
+        int n =1;
+        int i=12;
+        while(correctMessage && n<=stageC_numPackets) {
+            for (; i < (12 + stageC_packetLen)*n; i++) {
+                if (info[i] != Character.getNumericValue(stageC_char)) {
+                    correctMessage = false;
+                    break;
+                }
+            }
+            n+=1;
+            i+=12;//need to test about this
+        }
+        System.out.println("Exepected? " + stageC_packetLen * stageC_numPackets);
+
+        System.out.println("Packet len: " + stageC_packetLen);
+        System.out.println("Last byte: " + receivedPacket.array()[12+stageC_packetLen]);
+
+
+
+        //Send last packet to client
         if(correctMessage){
             Random rand = new Random();
             int psecretD = rand.nextInt(1000)+1;

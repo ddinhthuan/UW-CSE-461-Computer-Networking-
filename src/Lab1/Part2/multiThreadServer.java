@@ -18,8 +18,8 @@ public class multiThreadServer {
         System.out.println("server start");
         udpSocket =initializeUDPSocket(port,TIMEOUT);
         byte[] buffer2 = new byte[256];
-        Listner listner = new Listner();
-        Thread thread = new Thread(listner);
+        Listener listener = new Listener();
+        Thread thread = new Thread(listener);
         thread.start();
 
     }
@@ -91,7 +91,7 @@ public class multiThreadServer {
         udpSocket.close();
         System.out.println("close connection");
     }
-    class Listner implements Runnable {
+    class Listener implements Runnable {
         @Override
         public void run() {
             String text = null;
