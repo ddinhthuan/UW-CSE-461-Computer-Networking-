@@ -17,10 +17,27 @@ public class ProxyServer {
     public ProxyServer(int proxy_port){
         //Listening to port 1234
         InitialTCPSocket(proxy_port);
-        Listener listener =new Listener();
-        Thread thread = new Thread(listener);
-        thread.start();
+        while(! isStopped()) {
+            Socket proxySocket = null;
+            try {
+                proxySocket = tcpSocket.accept();
+            } catch (IOException e) {
+                if (isStopped()) {
+                    System.out.println("Server Stopped.");
+                    return;
+                }
+                throw new RuntimeException(
+                        "Error accepting client connection", e);
+            }
+            Listener listener =new Listener(proxySocket);
+            Thread thread = new Thread(listener);
+            thread.start();
+        }
 
+
+    }
+    private Boolean isStopped(){
+        return false;
     }
 
 
@@ -37,30 +54,27 @@ public class ProxyServer {
         }
     }
     class Listener implements Runnable {
+        Socket proxySocket=null;
+        Listener(Socket proxySocket){
+            this.proxySocket = proxySocket;
+        }
         @Override
         public void run() {
+                    //Parse first line
 
-            try{
+                    System.out.println("client connected: " + proxySocket.isConnected());
 
-                Socket proxySocket = tcpSocket.accept();
-                //Parse first line
+                    //Implement Handler
+                    //Coming from origin server
 
-                System.out.println("client connected: " + proxySocket.isConnected());
-                //Coming from origin server
-                //Coming from client
-                //1. Connect command
-                //2. Non connect Command
-            }catch(IOException e){
-
-            }
-
-
-
-
+                    //Coming from client
+                    //1. Connect command
+                    //2. Non connect Command
 
 
         }
 
     }
+
 
 }
