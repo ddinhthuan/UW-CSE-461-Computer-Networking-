@@ -1,0 +1,62 @@
+package Lab3;
+
+import Test.Server;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+public class ProxyServer {
+    private ServerSocket tcpSocket =null;
+
+    public static void main(String[] args)throws IOException{
+
+
+    }
+    public ProxyServer(){
+        //Listening to port 1234
+        InitialTCPSocket(1234);
+        Listener listener =new Listener();
+        Thread thread = new Thread(listener);
+        thread.start();
+
+    }
+
+
+    private void InitialTCPSocket(int tcp_port){
+        try {
+            tcpSocket = new ServerSocket(tcp_port);
+            System.out.println("Server started");
+            System.out.println("Waiting for a client...");
+
+
+        } catch (IOException e){
+            System.err.println("Could not connect");
+            System.err.println(e);
+        }
+    }
+    class Listener implements Runnable {
+        @Override
+        public void run() {
+            try{
+
+                Socket proxySocket = tcpSocket.accept();
+            }catch(IOException e){
+
+            }
+            //Coming from origin server
+
+            //Coming from client
+                //1. Connect command
+
+
+                //2. Non connect Command
+
+
+
+        }
+
+    }
+
+}
