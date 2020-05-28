@@ -2,6 +2,7 @@ package Lab3;
 
 public class HttpHeader {
     private String request= null;
+
     public HttpHeader(String req){
         this.request = req;
     }

@@ -96,17 +96,18 @@ public class ProxyServer {
                 OutputStream outToClient = connection.getOutputStream();
 
 
-//                InputStream inFromServer = server.getInputStream();
-             //   OutputStream outToServer = server.getOutputStream();
+//
 
 
                 //Request asks server to retrieve resource - identified by URI
                 int bytes_read;
                 HttpHeader request = null;
+                inFromClient.mark(0);
                 while((bytes_read = inFromClient.read(request_bytes)) != -1){
-                    outToClient.write(request_bytes, 0, bytes_read);
+                    //outToClient.write(request_bytes, 0, bytes_read);
                     String requestString = new String(request_bytes, StandardCharsets.UTF_8);
                     request = new HttpHeader(requestString);
+
                     //System.out.println("to server-->\n" + request.getRequest()); //for debugging
 
                     //print out first line of each HTTP request
@@ -115,8 +116,9 @@ public class ProxyServer {
                     // (which additionally includes the HTTP version) if that's easier
                     printDateStamp();
                     System.out.println(" >>> " + request.getStartLine());
-                    outToClient.flush();
+                    //outToClient.flush();
                 }
+
                 assert(request != null);
 
                 //For non-CONNECT HTTP requests - edit the HTTP request header, send it
@@ -132,6 +134,69 @@ public class ProxyServer {
                     request = request.transformRequestHeader();
 
                     //todo open a connection and send to browser
+                    try{
+                        server = new Socket(connection.getInetAddress(),parsePortNum(request));
+                    }catch (IOException e){
+                        throw new RuntimeException(e);
+                    }
+                    try{
+
+                    InputStream inFromServer = server.getInputStream();
+                    OutputStream outToServer = server.getOutputStream();
+
+                    //uploading
+                    new Thread() {
+                        public void run() {
+                            int bytes_read;
+                            System.out.println("run new thread to forward to server");
+                            try {
+                                inFromClient.reset();
+                                while ((bytes_read = inFromClient.read(request_bytes)) != -1) {
+                                    outToServer.write(request_bytes, 0, bytes_read);
+                                    outToServer.flush();
+                                    //TODO CREATE YOUR LOGIC HERE
+                                }
+                            } catch (IOException e) {
+                            }
+                            try {
+                                outToServer.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }.start();
+
+                        try {
+                            while ((bytes_read = inFromServer.read(reply_bytes)) != -1) {
+                                outToClient.write(reply_bytes, 0, bytes_read);
+                                outToClient.flush();
+                                //TODO CREATE YOUR LOGIC HERE
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } finally {
+                            try {
+                                if (server != null)
+                                    server.close();
+                                if (client != null)
+                                    client.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        outToClient.close();
+                        server.close();
+
+
+
+
+                  }catch (IOException e){
+
+                    }
+                    //downloading
+                    //int bytes_read;
+
+
 
                 } else { //is connect
                     //For CONNECT HTTP requests - establish TCP connection to the server named
@@ -152,7 +217,7 @@ public class ProxyServer {
                     } catch (IOException e) {
                         PrintWriter out = new PrintWriter(new OutputStreamWriter(outToClient));
                         out.flush();
-                        throw new RuntimeException(e);
+
                     }
 
                      */
