@@ -15,9 +15,9 @@ import java.util.Date;
 import java.util.Locale;
 
 public class ProxyServer {
-    private ServerSocket tcpSocket =null;
 
-    public static void main(String[] args){
+    private static ServerSocket tcpSocket = null;
+    public static void main(String[] args) {
         //TODO uncomment when ready
         /*
         if(args.length != 2){
@@ -31,66 +31,49 @@ public class ProxyServer {
 
         ProxyServer proxyServer = new ProxyServer(port);
         */
-        ProxyServer proxyServer = new ProxyServer(1234);
-
-    }
-    public ProxyServer(int proxy_port){
-        //Listening to port 1234
-        InitialTCPSocket(proxy_port);
-        while(! isStopped()) {
-            Socket proxySocket = null;
-            try {
-                proxySocket = tcpSocket.accept(); //connect to localhost
-            } catch (IOException e) {
-                if (isStopped()) {
-                    System.out.println("Server Stopped.");
-                    return;
-                }
-                throw new RuntimeException(
-                        "Error accepting client connection", e);
-            }
-            Listener listener =new Listener(proxySocket);
-            Thread thread = new Thread(listener);
-            thread.start();
-        }
-    }
-    private Boolean isStopped(){
-        return false;
-    }
-
-    private void printDateStamp() {
-        Calendar cal = Calendar.getInstance();
-        DateFormat df = new SimpleDateFormat("hh:mm:ss");
-        String time = df.format(new Date());
-        System.out.print(Calendar.DAY_OF_MONTH + " " + cal.getDisplayName(Calendar.MONTH,
-                Calendar.LONG, Locale.getDefault()) + " " + time + " - ");
-    }
-
-    private void InitialTCPSocket(int proxy_port){
+        int port = 1234;
         try {
-            tcpSocket = new ServerSocket(proxy_port);
-            printDateStamp();
+            tcpSocket = new ServerSocket(port);
+            //printDateStamp();
             System.out.println("Proxy listening on " + tcpSocket.getLocalSocketAddress()); //todo fix
 
             //System.out.println("Server started");
             //System.out.println("Waiting for a client...");
+            while(true){
+                //ThreadProxy threadProxy = new ThreadProxy(tcpSocket.accept(),port);
+                Listener listener = new Listener(tcpSocket.accept());
+                System.out.println("connected create thread");
+                Thread thread = new Thread(listener);
+                thread.start();
+            }
 
-        } catch (IOException e){
+            } catch (IOException e) {
             System.err.println("Could not connect");
             System.err.println(e);
         }
     }
+
+}
+
     class Listener implements Runnable {
         Socket proxySocket=null;
         Listener(Socket proxySocket){
             this.proxySocket = proxySocket;
         }
+        private void printDateStamp() {
+            Calendar cal = Calendar.getInstance();
+            DateFormat df = new SimpleDateFormat("hh:mm:ss");
+            String time = df.format(new Date());
+            System.out.print(Calendar.DAY_OF_MONTH + " " + cal.getDisplayName(Calendar.MONTH,
+                    Calendar.LONG, Locale.getDefault()) + " " + time + " - ");
+        }
+
         @Override
         public void run() {
-                    //Parse first line
+            //Parse first line
 
             //Implement Handler
-                    //Coming from origin server - header from user request
+            //Coming from origin server - header from user request
             // e.g. GET hostname - parse out hostname then send to host
             //modify keep alive flag - set to false if GET request
             //e.g. CONNECT request --> set up back and forth request
@@ -105,43 +88,57 @@ public class ProxyServer {
                 InputStream inFromClient = proxySocket.getInputStream();
                 OutputStream outToClient = proxySocket.getOutputStream();
 
+                BufferedReader reader = new BufferedReader(new InputStreamReader(inFromClient));
+                String line= reader.readLine();
+                reader.mark(0);
+                reader.reset();
+                System.out.println("=========================="+line+"========================");
                 //connect socket to server
-                try{
-                    server = new Socket(proxySocket.getInetAddress(), 1234); //todo fix hardcoded
-                } catch (IOException e){
-                    PrintWriter out = new PrintWriter(new OutputStreamWriter(outToClient));
-                    out.flush();
-                    throw new RuntimeException(e);
+                if(line.contains("CONNECT")) {
+                    try {
+                        server = new Socket(proxySocket.getInetAddress(), 1234); //todo fix hardcoded
+
+                        System.out.println("connect to server");
+                        PrintWriter out = new PrintWriter(new OutputStreamWriter(outToClient));
+                        out.write("HTTP/1.1 200 OK/\r\n\r\n");
+                        out.flush();
+                    } catch (IOException e) {
+                        PrintWriter out = new PrintWriter(new OutputStreamWriter(outToClient));
+                        out.flush();
+                        throw new RuntimeException(e);
+                    }
                 }
-                InputStream inFromServer = server.getInputStream();
-                OutputStream outToServer = server.getOutputStream();
+                    InputStream inFromServer = server.getInputStream();
+                    OutputStream outToServer = server.getOutputStream();
 
 
-                //Request asks server to retrieve resource - identified by URI
-                int bytes_read;
-                while((bytes_read = inFromClient.read(request_bytes)) != -1){
-                    outToServer.write(request_bytes, 0, bytes_read);
-                    String requestString = new String(request_bytes, StandardCharsets.UTF_8);
-                    HttpHeader request = new HttpHeader(requestString);
-            //        System.out.println("to server-->\n" + request); //for debugging
+                    //Request asks server to retrieve resource - identified by URI
+                    int bytes_read;
+                    while ((bytes_read = inFromClient.read(request_bytes)) != -1) {
+                        outToServer.write(request_bytes, 0, bytes_read);
+                        String requestString = new String(request_bytes, StandardCharsets.UTF_8);
+                        HttpHeader request = new HttpHeader(requestString);
+                        //        System.out.println("to server-->\n" + request); //for debugging
 
-                    //print out first line of each HTTP request
-                    // must print at least the HTTP method and URI given on the request line,
-                    // but you can also print the entire request line
-                    // (which additionally includes the HTTP version) if that's easier
-                    printDateStamp();
-                    System.out.println(" >>> " + request.getStartLine());
+                        //print out first line of each HTTP request
+                        // must print at least the HTTP method and URI given on the request line,
+                        // but you can also print the entire request line
+                        // (which additionally includes the HTTP version) if that's easier
+                        printDateStamp();
+                        System.out.println(" >>> " + request.getStartLine());
 
-                //    System.out.println(request.getHostLine()); //for debugging
+                        //    System.out.println(request.getHostLine()); //for debugging
 
-                    outToServer.flush();
-                }
-
+                        outToServer.flush();
+                    }
 
 //Server processes request - sends response
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+
+
 
 
             //Coming from client
@@ -154,4 +151,4 @@ public class ProxyServer {
     }
 
 
-}
+
