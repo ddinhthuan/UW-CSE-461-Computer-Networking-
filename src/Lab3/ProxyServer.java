@@ -7,7 +7,12 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
 
 public class ProxyServer {
     private ServerSocket tcpSocket =null;
@@ -53,11 +58,22 @@ public class ProxyServer {
         return false;
     }
 
+    private void printDateStamp() {
+        Calendar cal = Calendar.getInstance();
+        DateFormat df = new SimpleDateFormat("hh:mm:ss");
+        String time = df.format(new Date());
+        System.out.print(Calendar.DAY_OF_MONTH + " " + cal.getDisplayName(Calendar.MONTH,
+                Calendar.LONG, Locale.getDefault()) + " " + time + " - ");
+    }
+
     private void InitialTCPSocket(int proxy_port){
         try {
             tcpSocket = new ServerSocket(proxy_port);
-            System.out.println("Server started");
-            System.out.println("Waiting for a client...");
+            printDateStamp();
+            System.out.println("Proxy listening on " + tcpSocket.getLocalSocketAddress()); //todo fix
+
+            //System.out.println("Server started");
+            //System.out.println("Waiting for a client...");
 
         } catch (IOException e){
             System.err.println("Could not connect");
@@ -72,16 +88,14 @@ public class ProxyServer {
         @Override
         public void run() {
                     //Parse first line
-            System.out.println("client connected: " + proxySocket.isConnected());
-            System.out.println("The client is: " + proxySocket.getLocalAddress());
-                //Implement Handler
+
+            //Implement Handler
                     //Coming from origin server - header from user request
             // e.g. GET hostname - parse out hostname then send to host
             //modify keep alive flag - set to false if GET request
             //e.g. CONNECT request --> set up back and forth request
 
             //Client sends request to web server
-            //Request asks server to retrieve resource - identified by URI
             Socket client = null;
             Socket server = null;
             try{
@@ -102,12 +116,24 @@ public class ProxyServer {
                 InputStream inFromServer = server.getInputStream();
                 OutputStream outToServer = server.getOutputStream();
 
+
+                //Request asks server to retrieve resource - identified by URI
                 int bytes_read;
                 while((bytes_read = inFromClient.read(request_bytes)) != -1){
-                  //  System.out.println("Made it here");
                     outToServer.write(request_bytes, 0, bytes_read);
-                    String request = new String(request_bytes, StandardCharsets.UTF_8);
-                    System.out.println("to server-->" + request);
+                    String requestString = new String(request_bytes, StandardCharsets.UTF_8);
+                    HttpHeader request = new HttpHeader(requestString);
+            //        System.out.println("to server-->\n" + request); //for debugging
+
+                    //print out first line of each HTTP request
+                    // must print at least the HTTP method and URI given on the request line,
+                    // but you can also print the entire request line
+                    // (which additionally includes the HTTP version) if that's easier
+                    printDateStamp();
+                    System.out.println(" >>> " + request.getStartLine());
+
+                //    System.out.println(request.getHostLine()); //for debugging
+
                     outToServer.flush();
                 }
 
