@@ -87,7 +87,6 @@ public class ProxyServer {
 
             //Client sends request to web server
             Socket client = null;
-            Socket server = null;
             try{
                 byte[] request_bytes = new byte[1024];
                 byte[] reply_bytes = new byte[4096];
@@ -125,6 +124,8 @@ public class ProxyServer {
                 // and any payload the request might carry to the origin server,
                 // and then slightly edit the HTTP response header and
                 // send it and any response payload back to the browser.
+                System.out.println("request"+request.getHostLine().split(":")[1].toString());
+
                 if(!request.isConnect()){
 
                     System.out.println(request.getHostLine()); //for debugging
@@ -133,69 +134,13 @@ public class ProxyServer {
 
                     request = request.transformRequestHeader();
 
+
+                    Socket server = new Socket(request.getHostLine().split(":")[1].toString(), parsePortNum(request));
                     //todo open a connection and send to browser
-                    try{
-                        server = new Socket(connection.getInetAddress(),parsePortNum(request));
-                    }catch (IOException e){
-                        throw new RuntimeException(e);
-                    }
-                    try{
 
-                    InputStream inFromServer = server.getInputStream();
-                    OutputStream outToServer = server.getOutputStream();
-
-                    //uploading
-                    new Thread() {
-                        public void run() {
-                            int bytes_read;
-                            System.out.println("run new thread to forward to server");
-                            try {
-                                inFromClient.reset();
-                                while ((bytes_read = inFromClient.read(request_bytes)) != -1) {
-                                    outToServer.write(request_bytes, 0, bytes_read);
-                                    outToServer.flush();
-                                    //TODO CREATE YOUR LOGIC HERE
-                                }
-                            } catch (IOException e) {
-                            }
-                            try {
-                                outToServer.close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }.start();
-
-                        try {
-                            while ((bytes_read = inFromServer.read(reply_bytes)) != -1) {
-                                outToClient.write(reply_bytes, 0, bytes_read);
-                                outToClient.flush();
-                                //TODO CREATE YOUR LOGIC HERE
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } finally {
-                            try {
-                                if (server != null)
-                                    server.close();
-                                if (client != null)
-                                    client.close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        outToClient.close();
-                        server.close();
-
-
-
-
-                  }catch (IOException e){
-
-                    }
-                    //downloading
-                    //int bytes_read;
-
+                    Forward forward=new Forward(server,request);
+                    forward.start();
+                    System.out.println("forward to "+connection.getInetAddress().toString()+" request "+request.getStartLine().toString());
 
 
                 } else { //is connect
