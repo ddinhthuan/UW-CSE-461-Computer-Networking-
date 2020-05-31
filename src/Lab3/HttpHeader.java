@@ -40,7 +40,33 @@ public class HttpHeader {
     }
 
     public String getRequest() {
+
         return request;
+    }
+    public String getVersion(){
+        int idx = request.toLowerCase().indexOf("http/"); // insensitive to case of the keyword Host
+        return request.substring(idx,idx+8);
+    }
+    public String getHost(){
+        return getHostLine().split(": ")[1].toString().split(":")[0];
+    }
+    public int parsePortNum(){
+        //parse first line and host line for port num
+        // if no port specified - use 443 if https:// or 80 otherwise
+
+        String hostLine = getHostLine();
+        if(hostLine.substring(5, hostLine.length()-1).contains(":")) //TODO test edge cases
+            return Integer.parseInt(hostLine);
+
+        // look for one in te request line
+//            String firstLine = request.getStartLine();
+//            if(firstLine.contains(":")) //TODO fix logic
+//                return Integer.parseInt(firstLine);
+
+        if(hostLine.toLowerCase().contains("https://"))
+            return 443;
+
+        return 80;
     }
 
 }

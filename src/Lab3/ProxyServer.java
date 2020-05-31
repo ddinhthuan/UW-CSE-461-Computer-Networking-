@@ -4,12 +4,14 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
+
 
 public class ProxyServer {
 
@@ -64,8 +66,12 @@ public class ProxyServer {
             // if no port specified - use 443 if https:// or 80 otherwise
 
             String hostLine = request.getHostLine();
-            if(hostLine.substring(5, hostLine.length()-1).contains(":")) //TODO test edge cases
-                return Integer.parseInt(hostLine);
+            String hostAndport = hostLine.substring(6, hostLine.length()-1);
+            int idx1=0;
+            if(hostAndport.substring(6,hostAndport.length()-1).contains(":")) {//TODO test edge cases
+                idx1 = hostAndport.indexOf(":");
+                return Integer.parseInt(hostAndport.substring(idx1+1, hostAndport.length() ));
+            }
 
             // look for one in te request line
 //            String firstLine = request.getStartLine();
@@ -87,6 +93,7 @@ public class ProxyServer {
 
             //Client sends request to web server
             Socket client = null;
+
             try{
                 byte[] request_bytes = new byte[1024];
                 byte[] reply_bytes = new byte[4096];
@@ -126,16 +133,17 @@ public class ProxyServer {
                 // send it and any response payload back to the browser.
                 System.out.println("request"+request.getHostLine().split(":")[1].toString());
 
+                String host = request.getHost();
+                int port = parsePortNum(request);
                 if(!request.isConnect()){
 
                     System.out.println(request.getHostLine()); //for debugging
-                   int port = parsePortNum(request);
                     System.out.println("Port: " + port); //debugging
 
                     request = request.transformRequestHeader();
 
 
-                    Socket server = new Socket(request.getHostLine().split(":")[1].toString(), parsePortNum(request));
+                    Socket server = new Socket(host,port);
                     //todo open a connection and send to browser
 
                     Forward forward=new Forward(server,request);
@@ -150,27 +158,20 @@ public class ProxyServer {
                     // or the remote server to the other end of the communication.
                     //TODO
 
-                    System.err.println("Not yet implemented");
-                    /*
-                    try {
-                        server = new Socket(connection.getInetAddress(), 1234); //todo fix hardcoded
+                        Socket proxyToServer = new Socket(host,port);
+
+                        if(!proxyToServer.isConnected()){
+                            String responseToBrowser = request.getVersion() + " 502 Bad Gateway\r\n\r\n";
+                            outToClient.write(responseToBrowser.getBytes());
+                            return;
+                        }
 
                         System.out.println("connect to server");
                         PrintWriter out = new PrintWriter(new OutputStreamWriter(outToClient));
-                        out.write("HTTP/1.1 200 OK/\r\n\r\n");
-                        out.flush();
-                    } catch (IOException e) {
-                        PrintWriter out = new PrintWriter(new OutputStreamWriter(outToClient));
+                        out.write(request.getVersion()+" 200 OK/\r\n\r\n");
                         out.flush();
 
                     }
-
-                     */
-
-                }
-
-
-
 
             } catch (IOException e) {
                 e.printStackTrace();
