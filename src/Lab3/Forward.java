@@ -1,34 +1,28 @@
 package Lab3;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
 
 public class Forward extends Thread {
 
-    Socket server=null;
-    HttpHeader request=null;
+    Socket sender=null;
+    Socket receiver=null;
 
-   public Forward(Socket server, HttpHeader request){
-       this.server = server;
-       this.request =request;
+   public Forward(Socket sender,Socket receiver){
+       this.sender = sender;
+       this.receiver =receiver;
    }
 
 
     @Override
     public void run() {
        try {
-           OutputStream outFromProxy = server.getOutputStream();
-           outFromProxy.write(request.getRequest().getBytes());
-           outFromProxy.flush();
-
-            } catch (IOException e) {
-
-            }
-        try {
-           server.close();
-        }catch (IOException ie){
-
-        }
+           DataInputStream fromSender = new DataInputStream(new BufferedInputStream(sender.getInputStream()));
+           DataOutputStream outToReceiver = new DataOutputStream(receiver.getOutputStream());
+           //https://www.tutorialspoint.com/importance-of-transferto-method-of-inputstream-in-java-9
+           fromSender.transferTo(outToReceiver);
+        }catch (IOException e){
+           e.printStackTrace();
+       }
     }
 }

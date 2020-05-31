@@ -143,12 +143,11 @@ public class ProxyServer {
                     request = request.transformRequestHeader();
 
 
-                    Socket server = new Socket(host,port);
+                    Socket proxyToServer = new Socket(host,port);
                     //todo open a connection and send to browser
 
-                    Forward forward=new Forward(server,request);
+                    Forward forward=new Forward(proxyToServer,connection);
                     forward.start();
-                    System.out.println("forward to "+connection.getInetAddress().toString()+" request "+request.getStartLine().toString());
 
 
                 } else { //is connect
@@ -167,11 +166,19 @@ public class ProxyServer {
                         }
 
                         System.out.println("connect to server");
-                        PrintWriter out = new PrintWriter(new OutputStreamWriter(outToClient));
-                        out.write(request.getVersion()+" 200 OK/\r\n\r\n");
-                        out.flush();
+                        DataOutputStream out =  new DataOutputStream(outToClient);
+                        out.write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
+                        //out.write(request.getVersion()+" 200 OK/\r\n\r\n");
+
+
+                        Forward readFromServer = new Forward(proxyToServer,connection);
+                        Forward readFromClient = new Forward(connection,proxyToServer);
+                        readFromClient.start();
+                        readFromServer.start();
 
                     }
+
+
 
             } catch (IOException e) {
                 e.printStackTrace();
