@@ -47,8 +47,18 @@ public class HttpHeader {
         int idx = request.toLowerCase().indexOf("http/"); // insensitive to case of the keyword Host
         return request.substring(idx,idx+8);
     }
-    public String getHost(){
-        return getHostLine().split(": ")[1].toString().split(":")[0];
+    public String getHost(){ //must include "www" or "http://" etc
+        /*
+        String firstLine = getStartLine();
+        //For GET commend -- TODO CONNECT - if(!isConnect())
+        int start = firstLine.toLowerCase().indexOf("get") + 4;
+        int end =  firstLine.toLowerCase().indexOf("http/"); // insensitive to case of the keyword Host
+  //      System.out.println("HOST: " + firstLine.substring(start, end-1));
+        return firstLine.substring(start, end-1);
+         */
+        String hostline = getHostLine();
+        int start = hostline.toLowerCase().indexOf("host:");
+        return hostline.substring(start+6, hostline.length()-1);
     }
     public int parsePortNum(){
         //parse first line and host line for port num

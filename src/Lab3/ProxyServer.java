@@ -1,10 +1,7 @@
 package Lab3;
 
 import java.io.*;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.URL;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -50,7 +47,7 @@ public class ProxyServer {
         Proxy (Socket connection){
             this.connection = connection;
             printDateStamp();
-            System.out.println("Proxy listening on " + connection.getLocalSocketAddress()); //todo fix
+        //    System.out.println("Proxy listening on " + connection.getLocalSocketAddress()); //todo fix
         }
 
         private void printDateStamp() {
@@ -101,50 +98,48 @@ public class ProxyServer {
                 InputStream inFromClient = connection.getInputStream();
                 OutputStream outToClient = connection.getOutputStream();
 
-
-//
-
-
-                //Request asks server to retrieve resource - identified by URI
-                int bytes_read;
-                HttpHeader request = null;
+                //Get header from browser
                 inFromClient.mark(0);
-                while((bytes_read = inFromClient.read(request_bytes)) != -1){
-                    //outToClient.write(request_bytes, 0, bytes_read);
-                    String requestString = new String(request_bytes, StandardCharsets.UTF_8);
-                    request = new HttpHeader(requestString);
+                int bytes_read = inFromClient.read(request_bytes);
+                if(bytes_read == -1)
+                    System.err.println("there was an error reading");
 
-                    //System.out.println("to server-->\n" + request.getRequest()); //for debugging
+                String requestString = new String(request_bytes, StandardCharsets.UTF_8);
+                HttpHeader request = new HttpHeader(requestString);
 
-                    //print out first line of each HTTP request
-                    // must print at least the HTTP method and URI given on the request line,
-                    // but you can also print the entire request line
-                    // (which additionally includes the HTTP version) if that's easier
-                    printDateStamp();
-                    System.out.println(" >>> " + request.getStartLine());
-                    //outToClient.flush();
-                }
+                //print out first line of each HTTP request
+                // must print at least the HTTP method and URI given on the request line,
+                // but you can also print the entire request line
+                // (which additionally includes the HTTP version) if that's easier
+                printDateStamp();
+               System.out.println(" >>> " + request.getStartLine());
 
-                assert(request != null);
 
                 //For non-CONNECT HTTP requests - edit the HTTP request header, send it
                 // and any payload the request might carry to the origin server,
                 // and then slightly edit the HTTP response header and
                 // send it and any response payload back to the browser.
-                System.out.println("request"+request.getHostLine().split(":")[1].toString());
 
-                String host = request.getHost();
-                int port = parsePortNum(request);
+       //         System.out.println("request"+request.getHostLine().split(":")[1].toString());
+
                 if(!request.isConnect()){
+    System.out.println("ENTERED GET BRANCH");
 
-                    System.out.println(request.getHostLine()); //for debugging
-                    System.out.println("Port: " + port); //debugging
+                    String host = request.getHost();
+                    int port = parsePortNum(request);
+                    System.out.println("Connect to " + host + " on port " + port);
 
                     request = request.transformRequestHeader();
 
+                    //open a TCP connection to server on specified port
+                    Socket proxyToServer = new Socket(InetAddress.getByName(host),port);
+                    System.out.println("Socket connected to server? " + proxyToServer.isConnected());
 
-                    Socket proxyToServer = new Socket(host,port);
-                    //todo open a connection and send to browser
+                    //GET requests do not contain a message body - so request ends with a blank line
+
+
+                    //todo set timeout
+
 
                     Forward forward=new Forward(proxyToServer,connection);
                     forward.start();
@@ -156,7 +151,9 @@ public class ProxyServer {
                     // then simply pass through any data sent by the browser
                     // or the remote server to the other end of the communication.
                     //TODO
-
+                    System.out.println("ENTERED CONNECT BRANCH");
+                System.err.println("NOT YET IMPLEMENTED");
+                /*
                         Socket proxyToServer = new Socket(host,port);
 
                         if(!proxyToServer.isConnected()){
@@ -176,9 +173,9 @@ public class ProxyServer {
                         readFromClient.start();
                         readFromServer.start();
 
+
+                 */
                     }
-
-
 
             } catch (IOException e) {
                 e.printStackTrace();
