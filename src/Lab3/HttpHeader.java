@@ -8,6 +8,7 @@ public class HttpHeader {
     }
 
     public String getStartLine() {
+        //TODO  sometime stringIndexOutOfBOundsException
         int idx = request.indexOf('\n');
         return request.substring(0, idx);
     }

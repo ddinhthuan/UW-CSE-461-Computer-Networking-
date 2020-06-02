@@ -2,6 +2,7 @@ package Lab3;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
 public class Forward extends Thread {
 
@@ -24,5 +25,11 @@ public class Forward extends Thread {
         }catch (IOException e){
            e.printStackTrace();
        }
+    }
+    public static String byteArrayToHex(byte[] a) {
+        StringBuilder sb = new StringBuilder(a.length * 2);
+        for(byte b: a)
+            sb.append(String.format("%02x", b) + " ");
+        return sb.toString();
     }
 }

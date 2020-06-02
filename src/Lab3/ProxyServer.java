@@ -5,6 +5,7 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -49,7 +50,8 @@ public class ProxyServer {
         Proxy (Socket connection){
             this.connection = connection;
             printDateStamp();
-           System.out.println("Proxy listening on " + connection.getLocalSocketAddress()); //todo fix
+           //System.out.println("Proxy listening on " + connection.getLocalSocketAddress()); //todo fix
+
         }
 
         private void printDateStamp() {
@@ -98,7 +100,7 @@ public class ProxyServer {
 //                byte[] reply_bytes = new byte[4096];
 
                 InputStream inFromBrowser = connection.getInputStream();
-//                OutputStream outToClient = connection.getOutputStream();
+                OutputStream outToClient = connection.getOutputStream();
 
                 //Get header from browser
                 inFromBrowser.mark(0);
@@ -114,7 +116,7 @@ public class ProxyServer {
                 // but you can also print the entire request line
                 // (which additionally includes the HTTP version) if that's easier
                 printDateStamp();
-               System.out.println(" >>> " + request.getStartLine());
+                System.out.println(" >>> " + request.getStartLine());
 
 
                 //For non-CONNECT HTTP requests - edit the HTTP request header, send it
@@ -124,19 +126,18 @@ public class ProxyServer {
 
        //         System.out.println("request"+request.getHostLine().split(":")[1].toString());
 
-                if(!request.isConnect()){
-    System.out.println("ENTERED GET BRANCH");
+                String host = request.getHost();
+                int port = parsePortNum(request);
+                //System.out.println("Connect to " + host + " on port " + port);
 
-    //TODO move this out of branch ---------------------------------------------------------------
-                    String host = request.getHost();
-                    int port = parsePortNum(request);
-                    System.out.println("Connect to " + host + " on port " + port);
-    //-----------------------------------------------------------------------------------------
+                if(!request.isConnect()){
+                    // System.out.println("ENTERED GET BRANCH");
+
 
                     //open a TCP connection to server on specified port
                     Socket proxyToServer = new Socket(InetAddress.getByName(host),port);
                     proxyToServer.setSoTimeout(TIMEOUT);
-                    System.out.println("Socket connected to server? " + proxyToServer.isConnected());
+                    //System.out.println("Socket connected to server? " + proxyToServer.isConnected());
 
                     //GET requests do not contain a message body - so request ends with a blank line
                     //todo check if it contains blank line termination
@@ -150,16 +151,16 @@ public class ProxyServer {
 //                    PrintWriter writer = new PrintWriter(outToServer, true);
 
                     DataOutputStream dout=new DataOutputStream(proxyToServer.getOutputStream());
+                    //System.out.println("Get request"+ byteArrayToHex(data));
+
                     dout.write(data, 0, data.length);
                     dout.flush();
 
 
-                    System.out.println("Sent to server: ");
-                    System.out.println(request.getRequest());
-
-
-               //     Forward forward=new Forward(proxyToServer,connection);
-                //    forward.start();
+                    //System.out.println("Sent to server: ");
+                    //send to client
+                    Forward forward=new Forward(proxyToServer,connection);
+                    forward.start();
 
 
                 } else { //is connect
@@ -167,10 +168,12 @@ public class ProxyServer {
                     // in the request, send an HTTP success response to the browser,
                     // then simply pass through any data sent by the browser
                     // or the remote server to the other end of the communication.
-                    //TODO
-                    System.out.println("ENTERED CONNECT BRANCH");
-                System.err.println("NOT YET IMPLEMENTED");
-                /*
+
+                    //System.out.println("ENTERED CONNECT BRANCH");
+                    //TODO Think about a cleaner way to parse host without port inside
+                     int idx1 =host.indexOf(":");
+                     host = host.substring(0,idx1);
+                   //============================
                         Socket proxyToServer = new Socket(host,port);
 
                         if(!proxyToServer.isConnected()){
@@ -179,19 +182,21 @@ public class ProxyServer {
                             return;
                         }
 
-                        System.out.println("connect to server");
+                      //  System.out.println("connect to server");
                         DataOutputStream out =  new DataOutputStream(outToClient);
                         out.write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
-                        //out.write(request.getVersion()+" 200 OK/\r\n\r\n");
+                        //ut.write(request.getVersion()+" 200 OK/\r\n\r\n");
 
 
+                        //send to client
                         Forward readFromServer = new Forward(proxyToServer,connection);
+                        //send to server
                         Forward readFromClient = new Forward(connection,proxyToServer);
                         readFromClient.start();
                         readFromServer.start();
 
 
-                 */
+
                     }
 
             } catch (IOException e) {
@@ -199,4 +204,11 @@ public class ProxyServer {
             }
         }
     }
+    public static String byteArrayToHex(byte[] a) {
+        StringBuilder sb = new StringBuilder(a.length * 2);
+        for(byte b: a)
+            sb.append(String.format("%02x", b) + " ");
+        return sb.toString();
+    }
+
 }
