@@ -44,10 +44,12 @@ public class ProxyServer {
 
     private static class Proxy extends Thread {
         private Socket connection;
+        final int TIMEOUT = 15000;
+
         Proxy (Socket connection){
             this.connection = connection;
             printDateStamp();
-        //    System.out.println("Proxy listening on " + connection.getLocalSocketAddress()); //todo fix
+           System.out.println("Proxy listening on " + connection.getLocalSocketAddress()); //todo fix
         }
 
         private void printDateStamp() {
@@ -93,14 +95,14 @@ public class ProxyServer {
 
             try{
                 byte[] request_bytes = new byte[1024];
-                byte[] reply_bytes = new byte[4096];
+//                byte[] reply_bytes = new byte[4096];
 
-                InputStream inFromClient = connection.getInputStream();
-                OutputStream outToClient = connection.getOutputStream();
+                InputStream inFromBrowser = connection.getInputStream();
+//                OutputStream outToClient = connection.getOutputStream();
 
                 //Get header from browser
-                inFromClient.mark(0);
-                int bytes_read = inFromClient.read(request_bytes);
+                inFromBrowser.mark(0);
+                int bytes_read = inFromBrowser.read(request_bytes);
                 if(bytes_read == -1)
                     System.err.println("there was an error reading");
 
@@ -125,24 +127,39 @@ public class ProxyServer {
                 if(!request.isConnect()){
     System.out.println("ENTERED GET BRANCH");
 
+    //TODO move this out of branch ---------------------------------------------------------------
                     String host = request.getHost();
                     int port = parsePortNum(request);
                     System.out.println("Connect to " + host + " on port " + port);
-
-                    request = request.transformRequestHeader();
+    //-----------------------------------------------------------------------------------------
 
                     //open a TCP connection to server on specified port
                     Socket proxyToServer = new Socket(InetAddress.getByName(host),port);
+                    proxyToServer.setSoTimeout(TIMEOUT);
                     System.out.println("Socket connected to server? " + proxyToServer.isConnected());
 
                     //GET requests do not contain a message body - so request ends with a blank line
+                    //todo check if it contains blank line termination
+                    request = request.transformRequestHeader();
+
+                    //send data to the server
+
+                   byte[] data = request.getRequest().getBytes();
+//                    OutputStream outToServer = proxyToServer.getOutputStream();
+//                    outToServer.write(data);
+//                    PrintWriter writer = new PrintWriter(outToServer, true);
+
+                    DataOutputStream dout=new DataOutputStream(proxyToServer.getOutputStream());
+                    dout.write(data, 0, data.length);
+                    dout.flush();
 
 
-                    //todo set timeout
+                    System.out.println("Sent to server: ");
+                    System.out.println(request.getRequest());
 
 
-                    Forward forward=new Forward(proxyToServer,connection);
-                    forward.start();
+               //     Forward forward=new Forward(proxyToServer,connection);
+                //    forward.start();
 
 
                 } else { //is connect
