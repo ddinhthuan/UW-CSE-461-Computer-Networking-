@@ -1,5 +1,11 @@
 package Lab3;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+
 public class HttpHeader {
     private String request= null;
 
@@ -9,6 +15,7 @@ public class HttpHeader {
 
     public String getStartLine() {
         //TODO  sometime stringIndexOutOfBOundsException
+        assert(request != null);
         int idx = request.indexOf('\n');
         return request.substring(0, idx);
     }
@@ -41,43 +48,25 @@ public class HttpHeader {
     }
 
     public String getRequest() {
-
         return request;
     }
+
     public String getVersion(){
         int idx = request.toLowerCase().indexOf("http/"); // insensitive to case of the keyword Host
         return request.substring(idx,idx+8);
     }
-    public String getHost(){ //must include "www" or "http://" etc
-        /*
-        String firstLine = getStartLine();
-        //For GET commend -- TODO CONNECT - if(!isConnect())
-        int start = firstLine.toLowerCase().indexOf("get") + 4;
-        int end =  firstLine.toLowerCase().indexOf("http/"); // insensitive to case of the keyword Host
-  //      System.out.println("HOST: " + firstLine.substring(start, end-1));
-        return firstLine.substring(start, end-1);
-         */
+
+    public String getHost(){
         String hostline = getHostLine();
         int start = hostline.toLowerCase().indexOf("host:");
         return hostline.substring(start+6, hostline.length()-1);
     }
-    public int parsePortNum(){
-        //parse first line and host line for port num
-        // if no port specified - use 443 if https:// or 80 otherwise
 
-        String hostLine = getHostLine();
-        if(hostLine.substring(5, hostLine.length()-1).contains(":")) //TODO test edge cases
-            return Integer.parseInt(hostLine);
-
-        // look for one in te request line
-//            String firstLine = request.getStartLine();
-//            if(firstLine.contains(":")) //TODO fix logic
-//                return Integer.parseInt(firstLine);
-
-        if(hostLine.toLowerCase().contains("https://"))
-            return 443;
-
-        return 80;
+    public static void printDateStamp() {
+        Calendar cal = Calendar.getInstance();
+        DateFormat df = new SimpleDateFormat("hh:mm:ss");
+        String time = df.format(new Date());
+        System.out.print(Calendar.DAY_OF_MONTH + " " + cal.getDisplayName(Calendar.MONTH,
+                Calendar.LONG, Locale.getDefault()) + " " + time + " - ");
     }
-
 }
