@@ -14,14 +14,20 @@ public class HttpHeader {
     }
 
     public String getStartLine() {
-        //TODO  sometime stringIndexOutOfBOundsException
-        assert(request != null);
-        int idx = request.indexOf('\n');
+	int idx = 0;
+	idx = request.indexOf('\n');
+        if(idx == -1){
+            idx = request.length();
+        }
+        
         return request.substring(0, idx);
     }
 
     public String getHostLine() {
         int idx = request.toLowerCase().indexOf("host"); // insensitive to case of the keyword Host
+	if (idx == -1) 
+	    return null;
+        
         String tmp = request.substring(idx, request.length()-1);
         //System.out.println("tmp: " + tmp);
         int idx2 = tmp.indexOf('\n');
@@ -58,7 +64,10 @@ public class HttpHeader {
 
     public String getHost(){
         String hostline = getHostLine();
-        int start = hostline.toLowerCase().indexOf("host:");
+	if(hostline == null)
+	    return hostline;
+        
+	int start = hostline.toLowerCase().indexOf("host:");
         return hostline.substring(start+6, hostline.length()-1);
     }
 

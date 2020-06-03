@@ -98,7 +98,7 @@ public class ProxyServer {
             //e.g. CONNECT request --> set up back and forth request
 
             try{
-                byte[] request_bytes = new byte[1024];
+                byte[] request_bytes = new byte[2048];
 
                 InputStream inFromBrowser = connection.getInputStream();
                 OutputStream outToClient = connection.getOutputStream();
@@ -115,8 +115,19 @@ public class ProxyServer {
 
                 String requestString = new String(request_bytes, StandardCharsets.UTF_8);
                 HttpHeader request = new HttpHeader(requestString);
+		
+              
+                //For non-CONNECT HTTP requests - edit the HTTP request header, send it
+                // and any payload the request might carry to the origin server,
+                // and then slightly edit the HTTP response header and
+                // send it and any response payload back to the browser.
 
-                //print out first line of each HTTP request
+                String host = request.getHost();
+		if(host == null)
+		    return;
+               
+
+		//print out first line of each HTTP request
                 // must print at least the HTTP method and URI given on the request line,
                 // but you can also print the entire request line
                 // (which additionally includes the HTTP version) if that's easier
@@ -124,18 +135,12 @@ public class ProxyServer {
                 System.out.println(">>> " + request.getStartLine());
 
 
-                //For non-CONNECT HTTP requests - edit the HTTP request header, send it
-                // and any payload the request might carry to the origin server,
-                // and then slightly edit the HTTP response header and
-                // send it and any response payload back to the browser.
-
-                String host = request.getHost();
-                int port = parsePortNum(request);
+		int port = parsePortNum(request);
 
 //                if(port != 80)
 //                    System.out.println("Connect to " + host + " ON PORT " + port);
 
-                //TODO Think about a cleaner way to parse host without port inside
+                
                 //edge case: portquiz.net:12
                 if(host.contains(":")) {
                     int idx1 = host.indexOf(":");
