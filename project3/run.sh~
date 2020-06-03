@@ -1,0 +1,5 @@
+#!/bin/bash
+
+
+javac ProxyServer.java HttpHeader.java Forward.java
+java Lab3.ProxyServer
