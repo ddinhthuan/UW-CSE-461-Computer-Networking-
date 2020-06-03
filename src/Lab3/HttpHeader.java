@@ -14,14 +14,20 @@ public class HttpHeader {
     }
 
     public String getStartLine() {
-        //TODO  sometime stringIndexOutOfBOundsException
-        assert(request != null);
-        int idx = request.indexOf('\n');
+        int idx = 0;
+        idx = request.indexOf('\n');
+        if(idx == -1){
+            idx = request.length();
+        }
+
         return request.substring(0, idx);
     }
 
     public String getHostLine() {
         int idx = request.toLowerCase().indexOf("host"); // insensitive to case of the keyword Host
+        if (idx == -1)
+            return null;
+
         String tmp = request.substring(idx, request.length()-1);
         //System.out.println("tmp: " + tmp);
         int idx2 = tmp.indexOf('\n');
@@ -34,11 +40,11 @@ public class HttpHeader {
         // converting any Proxy-connection: keep-alive to Proxy-connection: close.
 
         // lower the HTTP version of the request to HTTP 1.0
-         HttpHeader tmp = new HttpHeader(request
-                 .replace("/1.1", "/1.0")
-                 .replace("keep-alive", "close"));
+        HttpHeader tmp = new HttpHeader(request
+                .replace("/1.1", "/1.0")
+                .replace("keep-alive", "close"));
 
-       //  System.out.println("MODIFIED HEADER\n" + tmp.getRequest());
+        //  System.out.println("MODIFIED HEADER\n" + tmp.getRequest());
         return tmp;
     }
 
@@ -58,6 +64,9 @@ public class HttpHeader {
 
     public String getHost(){
         String hostline = getHostLine();
+        if(hostline == null)
+            return hostline;
+
         int start = hostline.toLowerCase().indexOf("host:");
         return hostline.substring(start+6, hostline.length()-1);
     }

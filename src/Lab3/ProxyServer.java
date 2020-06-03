@@ -10,18 +10,18 @@ public class ProxyServer {
 
     public static void main(String[] args){
         //TODO uncomment when ready
-        int port = 1234;
-        /*
-        if(args.length != 2){
+        //        int port = 1234;
+
+        if(args.length != 1){
             throw new IllegalArgumentException("insufficient arguments");
         }
-        String program = args[0];
-        int port = Integer.parseInt(args[1]);
+
+        int port = Integer.parseInt(args[0]);
         if(port > 65535 || 1024 > port){ // todo valid range from 0 - 65535?
             throw new IllegalArgumentException("Invalid port number");
         }
 
-        */
+
 
         try (ServerSocket tcpSocket = new ServerSocket(port)) {
             printDateStamp();
@@ -98,7 +98,7 @@ public class ProxyServer {
             //e.g. CONNECT request --> set up back and forth request
 
             try{
-                byte[] request_bytes = new byte[1024];
+                byte[] request_bytes = new byte[2048];
 
                 InputStream inFromBrowser = connection.getInputStream();
                 OutputStream outToClient = connection.getOutputStream();
@@ -116,6 +116,17 @@ public class ProxyServer {
                 String requestString = new String(request_bytes, StandardCharsets.UTF_8);
                 HttpHeader request = new HttpHeader(requestString);
 
+
+                //For non-CONNECT HTTP requests - edit the HTTP request header, send it
+                // and any payload the request might carry to the origin server,
+                // and then slightly edit the HTTP response header and
+                // send it and any response payload back to the browser.
+
+                String host = request.getHost();
+                if(host == null)
+                    return;
+
+
                 //print out first line of each HTTP request
                 // must print at least the HTTP method and URI given on the request line,
                 // but you can also print the entire request line
@@ -124,18 +135,12 @@ public class ProxyServer {
                 System.out.println(">>> " + request.getStartLine());
 
 
-                //For non-CONNECT HTTP requests - edit the HTTP request header, send it
-                // and any payload the request might carry to the origin server,
-                // and then slightly edit the HTTP response header and
-                // send it and any response payload back to the browser.
-
-                String host = request.getHost();
                 int port = parsePortNum(request);
 
 //                if(port != 80)
 //                    System.out.println("Connect to " + host + " ON PORT " + port);
 
-                //TODO Think about a cleaner way to parse host without port inside
+
                 //edge case: portquiz.net:12
                 if(host.contains(":")) {
                     int idx1 = host.indexOf(":");
@@ -144,7 +149,7 @@ public class ProxyServer {
 
                 //open a TCP connection to server on specified port
                 Socket proxyToServer = new Socket(InetAddress.getByName(host),port);
-            //    proxyToServer.setSoTimeout(TIMEOUT); //todo - read time out error
+                //    proxyToServer.setSoTimeout(TIMEOUT); //todo - read time out error
 
                 // branch code depending on request type
                 if(!request.isConnect()){
@@ -174,7 +179,7 @@ public class ProxyServer {
                         return;
                     }
 
-                  //send back HTTP 200 OK
+                    //send back HTTP 200 OK
                     DataOutputStream out =  new DataOutputStream(outToClient);
                     out.write("HTTP/1.0 200 OK\r\n\r\n".getBytes());
 
