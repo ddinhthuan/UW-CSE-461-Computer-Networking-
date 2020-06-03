@@ -2,6 +2,7 @@ package Lab3;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 
 public class Forward extends Thread {
@@ -24,8 +25,9 @@ public class Forward extends Thread {
            DataOutputStream outToReceiver = new DataOutputStream(receiver.getOutputStream());
            //https://www.tutorialspoint.com/importance-of-transferto-method-of-inputstream-in-java-9
            fromSender.transferTo(outToReceiver);
-        }catch (IOException e){
-           //todo handle connection reset error
+        }catch (SocketException ex){ // handle exceptions with try catch
+           //System.err.println("CONNECTION RESET OR CONNECTION ABORT");
+       } catch (IOException e){
            e.printStackTrace();
        }
        //todo finally close sockets and streams

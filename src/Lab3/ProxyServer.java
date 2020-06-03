@@ -10,16 +10,16 @@ public class ProxyServer {
 
     public static void main(String[] args){
         //TODO uncomment when ready
-        //        int port = 1234;
+                int port = 1234;
 
-        if(args.length != 1){
-            throw new IllegalArgumentException("insufficient arguments");
-        }
-
-        int port = Integer.parseInt(args[0]);
-        if(port > 65535 || 1024 > port){ // todo valid range from 0 - 65535?
-            throw new IllegalArgumentException("Invalid port number");
-        }
+//        if(args.length != 1){
+//            throw new IllegalArgumentException("insufficient arguments");
+//        }
+//
+//        int port = Integer.parseInt(args[0]);
+//        if(port > 65535 || 1024 > port){ // todo valid range from 0 - 65535?
+//            throw new IllegalArgumentException("Invalid port number");
+//        }
 
 
 
