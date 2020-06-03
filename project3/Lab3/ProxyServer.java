@@ -10,18 +10,18 @@ public class ProxyServer {
 
     public static void main(String[] args){
         //TODO uncomment when ready
-        int port = 1234;
-        /*
-        if(args.length != 2){
+	//        int port = 1234;
+        
+        if(args.length != 1){
             throw new IllegalArgumentException("insufficient arguments");
         }
-        String program = args[0];
-        int port = Integer.parseInt(args[1]);
+        
+        int port = Integer.parseInt(args[0]);
         if(port > 65535 || 1024 > port){ // todo valid range from 0 - 65535?
             throw new IllegalArgumentException("Invalid port number");
         }
 
-        */
+        
 
         try (ServerSocket tcpSocket = new ServerSocket(port)) {
             printDateStamp();
