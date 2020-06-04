@@ -14,8 +14,13 @@ public class Forward extends Thread {
        this.receiver =receiver;
 
        //todo set timeouts
-    //   this.sender.setSoTimeout(20000);
-//       this.receiver.setSoTimeout(20000);
+
+       try {
+           this.sender.setSoTimeout(60000);
+           this.receiver.setSoTimeout(60000);
+       }catch (IOException i){
+           i.printStackTrace();
+       }
    }
 
     @Override
